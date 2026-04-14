@@ -5,14 +5,14 @@ import '../models/jugador_model.dart';
 import '../theme/app_theme.dart';
 
 // Pantalla para crear/editar un jugador
-class JugadoresScreen extends StatefulWidget {
-  const JugadoresScreen({super.key});
+class JugadorFormScreen extends StatefulWidget {
+  const JugadorFormScreen({super.key});
 
   @override
-  State<JugadoresScreen> createState() => _JugadoresScreenState();
+  State<JugadorFormScreen> createState() => _JugadorFormScreenState();
 }
 
-class _JugadoresScreenState extends State<JugadoresScreen> {
+class _JugadorFormScreenState extends State<JugadorFormScreen> {
 
   // Controladores para los campos del formulario
   final TextEditingController _nombreController = TextEditingController();

@@ -12,6 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   supabase_flutter: ^2.12.2
   flutter_dotenv: ^6.0.0
+  flutter_datetime_picker: ^1.5.1
 
 dev_dependencies:
   flutter_test:

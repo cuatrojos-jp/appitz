@@ -46,4 +46,14 @@ class AuthService {
 
   return response?['roles']?['permisos'] as Map<String, dynamic>?;
   }
+
+  Future<String?> getRolId(String userId) async {
+    final response = await _supabase
+        .from('usuarios')
+        .select('rol_id')
+        .eq('id', userId)
+        .maybeSingle();
+
+    return response?['rol_id'] as String?;
+  }
 }
