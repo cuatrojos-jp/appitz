@@ -4,24 +4,25 @@ import '../models/user_model.dart';
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  Future<(UserModel, String?)> login(String email, String password) async {
-  final response = await _supabase.auth.signInWithPassword(
-    email: email,
-    password: password,
-  );
-  
-  final user = UserModel.fromSupabaseUser(response.user!);
+  Future<(UserModel, String?, Map<String, dynamic>?)> login(String email, String password,) async {
+    final response = await _supabase.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
 
-  final userData = await _supabase
-      .from('usuarios')
-      .select('rol_id')
-      .eq('id', response.user!.id)
-      .maybeSingle();
+    final user = UserModel.fromSupabaseUser(response.user!);
 
-  final rolId = userData?['rol_id'] as String?;
-  
-  return (user, rolId);
-}
+    final userData = await _supabase
+        .from('usuarios')
+        .select('rol_id, roles(nombre, permisos)')
+        .eq('id', response.user!.id)
+        .maybeSingle();
+
+    final rolId = userData?['rol_id'] as String?;
+    final permisos = userData?['roles']?['permisos'] as Map<String, dynamic>?;
+
+    return (user, rolId, permisos);
+  }
 
   Future<void> logout() async {
     await _supabase.auth.signOut();
@@ -36,13 +37,13 @@ class AuthService {
     return _supabase.auth.currentUser?.id;
   }
 
-  Future<String?> getRolId(String userId) async {
+  Future<Map<String, dynamic>?> getPermisos(String userId) async {
   final response = await _supabase
       .from('usuarios')
-      .select('rol_id')
+      .select('roles(permisos)')
       .eq('id', userId)
       .maybeSingle();
-  
-  return response?['rol_id'];
-}
+
+  return response?['roles']?['permisos'] as Map<String, dynamic>?;
+  }
 }

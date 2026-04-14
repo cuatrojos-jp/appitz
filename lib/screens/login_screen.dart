@@ -21,10 +21,11 @@ class LoginScreen extends StatelessWidget {
     }
 
     try {
-      final (user, rolId) = await _authService.login(email, password);
+      await _authService.login(email, password);
       
-      print("Bienvenido: ${user.nombre}");
-      print("Rol: $rolId");
+      // NO UTILIZAR print() EN PRODUCCION
+      //print("Bienvenido: ${user.nombre}");
+      //print("Rol: $rolId");
 
       if (context.mounted) {
         Navigator.pushReplacement(

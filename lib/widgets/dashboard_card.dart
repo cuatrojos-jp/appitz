@@ -5,17 +5,20 @@ class DashboardCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Color color;
+  final void Function()? onTap;
 
   const DashboardCard({
     super.key,
     required this.title,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.grey[900],
