@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../widgets/custom_text_field.dart';
+import '../services/auth_service.dart';
 import 'dashboard_screen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -7,35 +9,54 @@ class LoginScreen extends StatelessWidget {
 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
 
-  void handleLogin(BuildContext context) {
-    final email = emailController.text;
-    final password = passwordController.text;
+  Future<void> handleLogin(BuildContext context) async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
 
-    print("email: $email");
-    print("password: $password");
+    if (email.isEmpty || password.isEmpty) {
+      _showError(context, 'Por favor ingresa email y contraseña');
+      return;
+    }
 
-    // Navegar a la pantalla del dashboard con una transición de deslizamiento
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const DashboardScreen(),
+    try {
+      await _authService.login(email, password);
+      
+      // NO UTILIZAR print() EN PRODUCCION
+      //print("Bienvenido: ${user.nombre}");
+      //print("Rol: $rolId");
 
-        // Transición de deslizamiento desde la derecha
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(1.0, 0.0); // Desde derecha
-          const end = Offset.zero;
-          const curve = Curves.easeInOut;
+      if (context.mounted) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => 
+                const DashboardScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              const begin = Offset(1.0, 0.0);
+              const end = Offset.zero;
+              const curve = Curves.easeInOut;
+              var tween = Tween(begin: begin, end: end)
+                  .chain(CurveTween(curve: curve));
+              var offsetAnimation = animation.drive(tween);
+              return SlideTransition(position: offsetAnimation, child: child);
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showError(context, e.toString());
+      }
+    }
+  }
 
-          var tween = Tween(
-            begin: begin,
-            end: end,
-          ).chain(CurveTween(curve: curve));
-          var offsetAnimation = animation.drive(tween);
-
-          return SlideTransition(position: offsetAnimation, child: child);
-        },
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
       ),
     );
   }
@@ -60,96 +81,35 @@ class LoginScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 20),
 
-            // Caja de texto del correo
-            TextField(
+            // Email TextField
+            CustomTextField(
               controller: emailController,
-              cursorColor: AppTheme.cursorColor,
-              style: TextStyle(
-                color: AppTheme.minorTextColor,
-              ), // Color de texto mientras se escribe
-
-              decoration: InputDecoration(
-                labelText: "Correo electrónico",
-                labelStyle: TextStyle(
-                  color: AppTheme.unfocusedLabelColor,
-                ), // Color del label cuando no está enfocado
-
-                floatingLabelStyle: TextStyle(
-                  color: AppTheme.focusedLabelColor,
-                ), // Color del label cuando está enfocado/hovering
-                // Borde sin enfocar
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: AppTheme.unfocusedBorderColor,
-                    width: 1,
-                  ),
-                ),
-
-                // Borde al enfocar
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: AppTheme.focusedBorderColor,
-                    width: 2,
-                  ),
-                ),
-              ),
+              label: "Correo electrónico",
+              keyboardType: TextInputType.emailAddress,
             ),
-
             const SizedBox(height: 20),
 
-            // Caja de texto de la contraseña
-            TextField(
+            // Password TextField
+            CustomTextField(
               controller: passwordController,
-              cursorColor: AppTheme.cursorColor,
-              obscureText: true,
-
-              style: TextStyle(
-                color: AppTheme.minorTextColor,
-              ), // Color de texto mientras se escribe
-
-              decoration: InputDecoration(
-                labelText: "Contraseña",
-                labelStyle: TextStyle(
-                  color: AppTheme.unfocusedLabelColor,
-                ), // Color del label cuando no está enfocado
-
-                floatingLabelStyle: TextStyle(
-                  color: AppTheme.focusedLabelColor,
-                ), // Color del label cuando está enfocado/hovering
-                // Borde sin enfocar
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: AppTheme.unfocusedBorderColor,
-                    width: 1,
-                  ),
-                ),
-
-                // Borde al enfocar
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: AppTheme.focusedBorderColor,
-                    width: 2,
-                  ),
-                ),
-              ),
+              label: "Contraseña",
+              isPassword: true,
             ),
-
             const SizedBox(height: 30),
 
-            // Botón de inicio de sesión
+            // Login Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.buttonColor,
                   foregroundColor: AppTheme.buttonTextColor,
-                  padding: EdgeInsets.symmetric(vertical: 15),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
                 onPressed: () => handleLogin(context),
-                child: Text("Iniciar sesión"),
+                child: const Text("Iniciar sesión"),
               ),
             ),
           ],
