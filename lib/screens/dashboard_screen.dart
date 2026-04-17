@@ -9,16 +9,16 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
         title: const Text(
           "Panel de Control",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppTheme.titleTextColor,
+            color: AppColors.titleTextColor,
           ),
         ),
-        backgroundColor: AppTheme.backgroundColor,
+        backgroundColor: AppColors.backgroundColor,
         elevation: 0,
         centerTitle: true,
         actions: [

@@ -21,7 +21,7 @@ class DashboardCard extends StatelessWidget {
           color: Colors.grey[900],
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppTheme.unfocusedBorderColor.withValues(alpha: 0.3),
+            color: AppColors.unfocusedBorderColor.withValues(alpha: 0.3),
             width: 1,
           ),
         ),

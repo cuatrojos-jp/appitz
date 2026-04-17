@@ -9,11 +9,11 @@ class DashboardHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Bienvenido de vuelta",
+          "Bienvenido!",
           style: TextStyle(color: Colors.grey, fontSize: 14),
         ),
         Text(
-          "Gestión Deportiva",
+          "Gestón de Equipos Club Guerreros",
           style: TextStyle(
             color: Colors.white,
             fontSize: 24,

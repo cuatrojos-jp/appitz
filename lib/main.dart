@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Appitz',
-      home: LoginScreen(),
+      home: LoginScreen(onLogin: () {}),
       debugShowCheckedModeBanner: false,
     );
   }

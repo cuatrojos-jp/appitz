@@ -1,34 +1,38 @@
 import 'package:flutter/material.dart';
 
-class LoginScreen extends StatefulWidget {
-  final VoidCallback onLogin;
-
-  const LoginScreen({super.key, required this.onLogin});
-
+class RegisterScreen extends StatefulWidget {
+  final VoidCallback onBack;
+ 
+  const RegisterScreen({super.key, required this.onBack});
+ 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
-
-class _LoginScreenState extends State<LoginScreen>
+ 
+class _RegisterScreenState extends State<RegisterScreen>
     with SingleTickerProviderStateMixin {
   bool _showPassword = false;
-
+  bool _showConfirmPassword = false;
+ 
   final _formKey = GlobalKey<FormState>();
+  final _fullNameController = TextEditingController();
+  final _teamNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-
+  final _confirmPasswordController = TextEditingController();
+ 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
-
-  // ── Colores del tema 
+ 
+  // ── Colores del tema (equivalente a las CSS vars del original) ──
   static const Color _background = Color(0xFF0F0F11);
   static const Color _card = Color(0xFF1A1A1E);
-  static const Color _primary = Color.fromARGB(255, 110, 231, 168); 
+  static const Color _primary = Color(0xFF6EE7B7); // verde-menta
   static const Color _border = Color(0xFF2A2A30);
   static const Color _secondary = Color(0xFF222228);
   static const Color _mutedFg = Color(0xFF6B7280);
-
+ 
   @override
   void initState() {
     super.initState();
@@ -41,25 +45,28 @@ class _LoginScreenState extends State<LoginScreen>
       begin: const Offset(0, 0.05),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-
+ 
     _animController.forward();
   }
-
+ 
   @override
   void dispose() {
     _animController.dispose();
+    _fullNameController.dispose();
+    _teamNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
-
+ 
   void _handleSubmit() {
     if (_formKey.currentState!.validate()) {
-      debugPrint('Login: ${_emailController.text}');
-      widget.onLogin(); // Navega al dashboard
+      debugPrint('Registro: ${_fullNameController.text}');
+      // Aquí iría la lógica de registro
     }
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen>
             right: MediaQuery.of(context).size.width * 0.05,
             child: _glowBlob(),
           ),
-
+ 
           // ── Contenido ──────────────────────────────────────────────────
           SafeArea(
             child: FadeTransition(
@@ -110,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
   }
-
+ 
   // ── Logo ──────────────────────────────────────────────────────────────
   Widget _buildLogo() {
     return Column(
@@ -153,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen>
       ],
     );
   }
-
+ 
   // ── Card con el formulario ────────────────────────────────────────────
   Widget _buildCard() {
     return Container(
@@ -169,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Iniciar Sesión',
+              'Crear Cuenta',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -178,11 +185,29 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             const SizedBox(height: 4),
             const Text(
-              'Bienvenido de vuelta',
+              'Completa tus datos para comenzar',
               style: TextStyle(color: _mutedFg, fontSize: 13),
             ),
             const SizedBox(height: 24),
-
+ 
+            // Nombre Completo
+            _buildField(
+              label: 'Nombre Completo',
+              controller: _fullNameController,
+              hint: 'Juan Pérez',
+              icon: Icons.person_outline_rounded,
+            ),
+            const SizedBox(height: 16),
+ 
+            // Nombre del Equipo
+            _buildField(
+              label: 'Nombre del Equipo',
+              controller: _teamNameController,
+              hint: 'FC Thunder',
+              icon: Icons.shield_outlined,
+            ),
+            const SizedBox(height: 16),
+ 
             // Email
             _buildField(
               label: 'Email',
@@ -192,60 +217,62 @@ class _LoginScreenState extends State<LoginScreen>
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
-
+ 
             // Contraseña
             _buildPasswordField(
               label: 'Contraseña',
               controller: _passwordController,
               show: _showPassword,
-              onToggle: () => setState(() => _showPassword = !_showPassword),
+              onToggle: () =>
+                  setState(() => _showPassword = !_showPassword),
             ),
-            const SizedBox(height: 8),
-
-            // Olvidé mi contraseña
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: () {}, // lógica de recuperación
-                child: const Text(
-                  '¿Olvidaste tu contraseña?',
-                  style: TextStyle(
-                      color: _primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500),
-                ),
-              ),
+            const SizedBox(height: 16),
+ 
+            // Confirmar Contraseña
+            _buildPasswordField(
+              label: 'Confirmar Contraseña',
+              controller: _confirmPasswordController,
+              show: _showConfirmPassword,
+              onToggle: () => setState(
+                  () => _showConfirmPassword = !_showConfirmPassword),
+              validator: (v) {
+                if (v != _passwordController.text) {
+                  return 'Las contraseñas no coinciden';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 24),
-
+ 
             // Botón de envío
             _buildSubmitButton(),
             const SizedBox(height: 24),
-
+ 
             // Divider
             Row(
               children: const [
                 Expanded(child: Divider(color: _border)),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('o', style: TextStyle(color: _mutedFg, fontSize: 13)),
+                  child:
+                      Text('o', style: TextStyle(color: _mutedFg, fontSize: 13)),
                 ),
                 Expanded(child: Divider(color: _border)),
               ],
             ),
             const SizedBox(height: 20),
-
-            // Crear cuenta
+ 
+            // Volver al login
             GestureDetector(
-              onTap: () {}, // navegar a registro
+              onTap: widget.onBack,
               child: Center(
                 child: RichText(
                   text: const TextSpan(
                     style: TextStyle(color: _mutedFg, fontSize: 14),
                     children: [
-                      TextSpan(text: '¿No tienes cuenta? '),
+                      TextSpan(text: '¿Ya tienes cuenta? '),
                       TextSpan(
-                        text: 'Regístrate',
+                        text: 'Inicia sesión',
                         style: TextStyle(
                           color: _primary,
                           fontWeight: FontWeight.w600,
@@ -261,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
   }
-
+ 
   // ── Campo de texto genérico ───────────────────────────────────────────
   Widget _buildField({
     required String label,
@@ -317,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen>
       ],
     );
   }
-
+ 
   // ── Campo de contraseña ───────────────────────────────────────────────
   Widget _buildPasswordField({
     required String label,
@@ -383,7 +410,7 @@ class _LoginScreenState extends State<LoginScreen>
       ],
     );
   }
-
+ 
   // ── Botón principal ───────────────────────────────────────────────────
   Widget _buildSubmitButton() {
     return SizedBox(
@@ -397,40 +424,40 @@ class _LoginScreenState extends State<LoginScreen>
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           elevation: 8,
-          shadowColor: _primary.withValues(alpha: 0.4),
+          shadowColor: _primary.withOpacity(0.4),
         ),
         child: const Text(
-          'Iniciar Sesión',
+          'Crear Cuenta',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
         ),
       ),
     );
   }
-
+ 
   // ── Footer ────────────────────────────────────────────────────────────
   Widget _buildFooter() {
     return FadeTransition(
       opacity: _fadeAnim,
       child: const Text(
-        'Al iniciar sesión, aceptas nuestros términos y condiciones',
+        'Al crear una cuenta, aceptas nuestros términos y condiciones',
         style: TextStyle(color: _mutedFg, fontSize: 11),
         textAlign: TextAlign.center,
       ),
     );
   }
-
-  // ── Blob de fondo ─────────────────────────────────────────────────────
+ 
+  // ── fondo ─────────────────────────────────────────────────────
   Widget _glowBlob() {
     return Container(
       width: 300,
       height: 300,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: _primary.withValues(alpha: 0.05),
+        color: _primary.withOpacity(0.05),
       ),
       child: BackdropFilter(
         filter: ColorFilter.mode(
-          _primary.withValues(alpha: 0.03),
+          _primary.withOpacity(0.03),
           BlendMode.screen,
         ),
         child: const SizedBox.shrink(),
