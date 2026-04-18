@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/usuario_service.dart';
+import 'build_field.dart';
+import 'build_password_field.dart';
 
 /// Formulario completo de registro
 class RegisterForm extends StatefulWidget {
@@ -106,26 +108,31 @@ class _RegisterFormState extends State<RegisterForm> {
             const SizedBox(height: 24),
 
             // Nombre Completo
-            _buildField(
-              label: 'Nombre Completo',
+            BuildField(
+              label: "Nombre Completo",
               controller: _nombreController,
-              hint: 'Juan Pérez',
+              hint: "Juan Pérez",
               icon: Icons.person_outline_rounded,
             ),
             const SizedBox(height: 16),
 
             // Email
-            _buildField(
+            BuildField(
               label: 'Email',
               controller: _emailController,
               hint: 'tu@email.com',
               icon: Icons.mail_outline_rounded,
               keyboardType: TextInputType.emailAddress,
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Campo requerido';
+                if (!v.contains('@')) return 'Email inválido';
+                return null;
+              }
             ),
             const SizedBox(height: 16),
 
             // Contraseña
-            _buildPasswordField(
+            BuildPasswordField(
               label: 'Contraseña',
               controller: _passwordController,
               show: _showPassword,
@@ -134,7 +141,7 @@ class _RegisterFormState extends State<RegisterForm> {
             const SizedBox(height: 16),
 
             // Confirmar Contraseña
-            _buildPasswordField(
+            BuildPasswordField(
               label: 'Confirmar Contraseña',
               controller: _confirmPasswordController,
               show: _showConfirmPassword,
@@ -192,121 +199,6 @@ class _RegisterFormState extends State<RegisterForm> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildField({
-    required String label,
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          style: const TextStyle(color: Colors.white),
-          validator: validator ?? (v) => (v == null || v.isEmpty) ? 'Campo requerido' : null,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: AppTheme.mutedForegroundColor),
-            prefixIcon: Icon(icon, color: AppTheme.mutedForegroundColor, size: 20),
-            filled: true,
-            fillColor: AppTheme.secondaryColor,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppTheme.borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPasswordField({
-    required String label,
-    required TextEditingController controller,
-    required bool show,
-    required VoidCallback onToggle,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: !show,
-          style: const TextStyle(color: Colors.white),
-          validator: validator ?? (v) => (v == null || v.isEmpty) ? 'Campo requerido' : null,
-          decoration: InputDecoration(
-            hintText: '••••••••',
-            hintStyle: const TextStyle(color: AppTheme.mutedForegroundColor),
-            prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.mutedForegroundColor, size: 20),
-            suffixIcon: IconButton(
-              icon: Icon(
-                show ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                color: AppTheme.mutedForegroundColor,
-                size: 20,
-              ),
-              onPressed: onToggle,
-            ),
-            filled: true,
-            fillColor: AppTheme.secondaryColor,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppTheme.borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
     );
   }
 
