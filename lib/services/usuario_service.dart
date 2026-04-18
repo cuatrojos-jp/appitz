@@ -30,11 +30,10 @@ class UsuarioService {
           id,
           nombre,
           activo,
-          creado_en,
-          auth_users!inner(email)
+          auth_users!inner(email, created_at)
         ''')
         .eq('activo', false)
-        .order('creado_en', ascending: false); // Las más recientes primero
+        .order('created_at', ascending: false); // Las más recientes primero
     
     return response;
   }
@@ -48,8 +47,7 @@ class UsuarioService {
         .select('''
           id,
           nombre,
-          creado_en,
-          auth_users!inner(email)
+          auth_users!inner(email, created_at)
         ''')
         .eq('id', usuarioId)
         .eq('activo', false)
@@ -145,12 +143,11 @@ class UsuarioService {
           id,
           nombre,
           activo,
-          creado_en,
           rol_id,
           roles(nombre),
-          auth_users!inner(email)
+          auth_users!inner(email, created_at)
         ''')
-        .order('creado_en', ascending: false);
+        .order('created_at', ascending: false);
     
     return response;
   }

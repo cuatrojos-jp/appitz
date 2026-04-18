@@ -1,10 +1,9 @@
 import 'package:appitz/screens/jugador_list_screen.dart';
-//import 'package:appitz/widgets/jugador_list_tile.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/dashboard_header.dart';
-//import 'jugador_form_screen.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -29,7 +28,7 @@ class DashboardScreen extends StatelessWidget {
             icon: const Icon(Icons.logout),
             onPressed: () {
               // Volver al login
-              Navigator.pushReplacementNamed(context, '/login');
+              _navigateTo(context, const LoginScreen());
             },
           ),
         ],
@@ -81,6 +80,11 @@ class DashboardScreen extends StatelessWidget {
                     title: "Configuración",
                     icon: Icons.settings,
                     color: Colors.grey,
+                  ),
+                  DashboardCard(
+                    title: "Usuarios",
+                    icon: Icons.person,
+                    color: Colors.teal,
                   ),
                 ],
               ),

@@ -17,7 +17,7 @@ class AuthService {
     // Obtener datos adicionales de tu tabla 'usuarios'
     final userData = await _supabase
         .from('usuarios')
-        .select('activo, rol_id, roles(nombre, permisos), jugador_id')
+        .select('activo, rol_id, roles(nombre, permisos)')
         .eq('id', response.user!.id)
         .maybeSingle();
 
@@ -32,7 +32,6 @@ class AuthService {
       response.user!,
       activo: userData['activo'],
       rolId: userData['rol_id'],
-      jugadorId: userData['jugador_id'],
     );
 
     // Extraer rol ID y permisos para devolverlos en la tupla
