@@ -5,8 +5,8 @@ import 'build_field.dart';
 import 'build_password_field.dart';
 
 class LoginForm extends StatefulWidget {
-  final VoidCallback onSuccess;
   const LoginForm({super.key, required this.onSuccess});
+  final VoidCallback onSuccess;
 
   @override
   State<LoginForm> createState() => _LoginFormState();
@@ -31,6 +31,7 @@ class _LoginFormState extends State<LoginForm> {
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
 
     final email = _emailController.text.trim();
@@ -43,16 +44,16 @@ class _LoginFormState extends State<LoginForm> {
       }
     } catch (e) {
       if (mounted) {
-        _showError(e.toString());
+        _showSnackBar(e.toString(), color: AppTheme.errorColor);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showError(String message) {
+  void _showSnackBar(String message, {color}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+      SnackBar(content: Text(message), backgroundColor: color),
     );
   }
 

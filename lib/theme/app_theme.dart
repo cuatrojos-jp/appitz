@@ -18,4 +18,6 @@ class AppTheme {
   static const borderColor = Color(0xFF2A2A30);
   static const secondaryColor = Color(0xFF222228);
   static const mutedForegroundColor = Color(0xFF6B7280);
+  static const errorColor = Colors.redAccent;
+  static const successColor = Colors.greenAccent;
 }

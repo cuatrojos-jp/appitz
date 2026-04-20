@@ -102,7 +102,9 @@ class _LoginScreenState extends State<LoginScreen>
                         children: [
                           const RegisterLogo(),
                           const SizedBox(height: 32),
-                          LoginForm(onSuccess: () => _navigateToDashboard),
+                          LoginForm(
+                            onSuccess: () => _navigateToDashboard(context)
+                          ),
                           const SizedBox(height: 24),
                           Row(
                             children: const [

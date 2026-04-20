@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../services/usuario_service.dart';
 import 'build_field.dart';
 import 'build_password_field.dart';
+import 'show_snackbar.dart';
 
 /// Formulario completo de registro
 class RegisterForm extends StatefulWidget {
@@ -53,22 +54,16 @@ class _RegisterFormState extends State<RegisterForm> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registro exitoso. Espera aprobación del coordinador.'),
-            backgroundColor: Colors.green,
-          ),
+        showSnackBar(
+          context,
+          'Registro exitoso, espera aprobación del coordinador', 
+          color: AppTheme.successColor,
         );
         widget.onSuccess();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnackBar(context, e.toString(), color: AppTheme.errorColor);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
