@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/dashboard_header.dart';
 import 'login_screen.dart';
+import 'lista_usuarios.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -85,6 +86,7 @@ class DashboardScreen extends StatelessWidget {
                     title: "Usuarios",
                     icon: Icons.person,
                     color: Colors.teal,
+                    onTap:() => _navigateTo(context, const UsuariosListScreen()),
                   ),
                 ],
               ),

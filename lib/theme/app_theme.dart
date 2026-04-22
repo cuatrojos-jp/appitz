@@ -20,4 +20,13 @@ class AppTheme {
   static const mutedForegroundColor = Color(0xFF6B7280);
   static const errorColor = Colors.redAccent;
   static const successColor = Colors.greenAccent;
+  static const dangerColor = Colors.redAccent;
+
+  static const Color border = Color(0xFFE0E0E0);
+  static const Color textTertiary = Color(0xFFBDBDBD); 
+  static const Color danger = Color(0xFFE53935);
+  static const Color primary = Color(0xFF1976D2); 
+  static const Color textSecondary = Color(0xFF757575);
+  static const Color textPrimary = Color(0xFF212121);
+  static const Color surface = Color(0xFFF5F5F5);
 }

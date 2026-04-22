@@ -18,13 +18,15 @@ class AuthService {
     final userData = await _supabase
         .from('usuarios')
         .select('activo, rol_id, roles(nombre, permisos)')
-        .eq('id', response.user!.id)
+        .eq('auth_id', response.user!.id) // ← Cambiar 'id' por 'auth_id'
         .maybeSingle();
 
     // Verificar si el usuario está aprobado (activo = true)
     // Si no está aprobado, lanzar excepción para impedir el login
     if (userData == null || userData['activo'] != true) {
-      throw Exception('Tu cuenta está pendiente de aprobación por el coordinador.');
+      throw Exception(
+        'Tu cuenta está pendiente de aprobación por el coordinador.',
+      );
     }
 
     // Construir UserModel con los datos de auth.users
@@ -75,7 +77,7 @@ class AuthService {
 
     return response?['rol_id'] as String?;
   }
-  
+
   // Registrar un nuevo usuario (crea cuenta pendiente de aprobación)
   Future<void> registrar(String email, String password, String nombre) async {
     // El trigger en Supabase se encargará de crear el registro en 'usuarios'
@@ -83,7 +85,7 @@ class AuthService {
     await _supabase.auth.signUp(
       email: email,
       password: password,
-      data: {'nombre': nombre},  // ← Va a raw_user_meta_data
+      data: {'nombre': nombre}, // ← Va a raw_user_meta_data
     );
   }
 }

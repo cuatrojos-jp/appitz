@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import 'build_field.dart';
 import 'build_password_field.dart';
+import 'show_snackbar.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key, required this.onSuccess});
@@ -44,17 +45,11 @@ class _LoginFormState extends State<LoginForm> {
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar(e.toString(), color: AppTheme.errorColor);
+        showSnackBar(context, e.toString(), color: AppTheme.errorColor);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _showSnackBar(String message, {color}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
   }
 
   @override
