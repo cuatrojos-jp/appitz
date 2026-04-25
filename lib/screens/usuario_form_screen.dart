@@ -72,7 +72,11 @@ class _UsuarioFormScreenState extends State<UsuarioFormScreen> {
           }
         }
       } else {
-        await _usuarioService.cambiarRol(widget.usuario!.id, _selectedRolId);
+        await _usuarioService.editarUsuario(
+          usuarioId: widget.usuario!.id,
+          nuevoRolId: _selectedRolId, 
+          nuevoNombre: _nombreCtrl.text.trim().isEmpty ? 'Sin nombre' : _nombreCtrl.text.trim(),
+        );
         if (mounted) {
           setState(() => _isLoading = false);
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -144,6 +148,7 @@ class _UsuarioFormScreenState extends State<UsuarioFormScreen> {
               const SizedBox(height: 16),
 
               // Campo Email
+              if (esNuevo) ...[
               TextFormField(
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
@@ -176,6 +181,7 @@ class _UsuarioFormScreenState extends State<UsuarioFormScreen> {
                 },
               ),
               const SizedBox(height: 16),
+              ],
 
               // Dropdown Rol
               DropdownButtonFormField<String>(

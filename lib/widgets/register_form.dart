@@ -4,6 +4,7 @@ import '../services/usuario_service.dart';
 import 'build_field.dart';
 import 'build_password_field.dart';
 import 'show_snackbar.dart';
+import '../utils/validators.dart';
 
 /// Formulario completo de registro
 class RegisterForm extends StatefulWidget {
@@ -108,6 +109,7 @@ class _RegisterFormState extends State<RegisterForm> {
               controller: _nombreController,
               hint: "Juan Pérez",
               icon: Icons.person_outline_rounded,
+              validator: Validators.validarNombre,
             ),
             const SizedBox(height: 16),
 
@@ -118,11 +120,7 @@ class _RegisterFormState extends State<RegisterForm> {
               hint: 'tu@email.com',
               icon: Icons.mail_outline_rounded,
               keyboardType: TextInputType.emailAddress,
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Campo requerido';
-                if (!v.contains('@')) return 'Email inválido';
-                return null;
-              }
+              validator: Validators.validarEmail,
             ),
             const SizedBox(height: 16),
 
@@ -132,6 +130,7 @@ class _RegisterFormState extends State<RegisterForm> {
               controller: _passwordController,
               show: _showPassword,
               onToggle: () => setState(() => _showPassword = !_showPassword),
+              validator: Validators.validarPassword,
             ),
             const SizedBox(height: 16),
 
@@ -141,12 +140,7 @@ class _RegisterFormState extends State<RegisterForm> {
               controller: _confirmPasswordController,
               show: _showConfirmPassword,
               onToggle: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
-              validator: (v) {
-                if (v != _passwordController.text) {
-                  return 'Las contraseñas no coinciden';
-                }
-                return null;
-              },
+              validator: (v) => Validators.confirmarPassword(v, _passwordController.text)
             ),
             const SizedBox(height: 24),
 

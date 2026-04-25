@@ -40,7 +40,7 @@ class BuildField extends StatelessWidget {
           keyboardType: keyboardType,
           style: const TextStyle(
             color: Colors.white,
-            ),
+          ),
           validator: validator
             ?? (v) => (v == null || v.isEmpty)
               ? 'Campo requerido'

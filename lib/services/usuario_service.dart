@@ -268,6 +268,20 @@ class UsuarioService {
     return response;
   }
 
+  Future<void> editarUsuario({
+  required String usuarioId,
+  required String nuevoRolId,
+  required String nuevoNombre,
+}) async {
+  await _supabase
+      .from('usuarios')
+      .update({
+        'rol_id': nuevoRolId,
+        'nombre': nuevoNombre,
+      })
+      .eq('id', usuarioId);
+}
+
   // ============================================================
   // GESTIÓN DE USUARIOS
   // ============================================================
