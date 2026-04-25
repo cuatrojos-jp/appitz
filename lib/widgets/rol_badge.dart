@@ -7,7 +7,7 @@ class RolBadge extends StatelessWidget {
 
   // UUIDs de roles
   static const String _adminRoleId = 'a0d38955-fa67-4751-a36b-777fcf4d8ed9';
-  static const String _jugadorRoleId = 'uuid-jugador-aqui';
+  static const String _jugadorRoleId = '6c3d23ab-6228-44b8-8216-6f25ff1b7a4f';
 
   String _getLabel() {
     if (rolId == _adminRoleId) return 'Coordinador';  // ← Visualmente Coordinador

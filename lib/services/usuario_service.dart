@@ -267,4 +267,31 @@ class UsuarioService {
 
     return response;
   }
+
+  // ============================================================
+  // GESTIÓN DE USUARIOS
+  // ============================================================
+
+  /// Crear usuario por coordinador usando Edge Function
+  Future<void> crearUsuarioPorCoordinador({
+    required String email,
+    required String nombre,
+    required String password,
+    required String rolId,
+  }) async {
+    final response = await _supabase.functions.invoke(
+      'create_user',
+      body: {
+        'email': email,
+        'password': password,
+        'nombre': nombre,
+        'rolId': rolId,
+      },
+    );
+
+    if (response.status != 200) {
+      final errorData = response.data as Map<String, dynamic>;
+      throw Exception(errorData['error'] ?? 'Error al crear usuario');
+    }
+  }
 }

@@ -22,7 +22,7 @@ class _UsuariosListScreenState extends State<UsuariosListScreen> {
   String _query = '';
 
   static const String _rolAdminId = 'a0d38955-fa67-4751-a36b-777fcf4d8ed9';
-  static const String _rolJugadorId = 'uuid-jugador';
+  static const String _rolJugadorId = '6c3d23ab-6228-44b8-8216-6f25ff1b7a4f';
 
   final UsuarioService _usuarioService = UsuarioService();
   bool _isLoading = false;
@@ -48,13 +48,14 @@ class _UsuariosListScreenState extends State<UsuariosListScreen> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: TextField(
         controller: _searchCtrl,
-        style: const TextStyle(fontSize: 14),
+        style: const TextStyle(fontSize: 14, color: Colors.white),
         decoration: InputDecoration(
           hintText: 'Buscar por nombre o correo…',
+          hintStyle: const TextStyle(color: AppTheme.mutedForegroundColor),
           prefixIcon: const Icon(
             Icons.search,
             size: 18,
-            color: AppTheme.textTertiary,
+            color: AppTheme.mutedForegroundColor,
           ),
           suffixIcon: _query.isNotEmpty
               ? IconButton(
@@ -63,14 +64,17 @@ class _UsuariosListScreenState extends State<UsuariosListScreen> {
                 )
               : null,
           filled: true,
-          fillColor: AppTheme.surface,
+          fillColor: AppTheme.secondaryColor,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 10,
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(22),
-            borderSide: const BorderSide(color: AppTheme.border, width: 0.5),
+            borderSide: const BorderSide(
+              color: AppTheme.borderColor,
+              width: 0.5,
+            ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(22),
@@ -78,7 +82,10 @@ class _UsuariosListScreenState extends State<UsuariosListScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(22),
-            borderSide: const BorderSide(color: AppTheme.primary, width: 1.2),
+            borderSide: const BorderSide(
+              color: AppTheme.primaryColor,
+              width: 1.2,
+            ),
           ),
         ),
       ),
@@ -200,19 +207,19 @@ class _UsuariosListScreenState extends State<UsuariosListScreen> {
   }).toList();
 
   Future<void> _abrirForm({UserModel? usuario}) async {
-    final result = await Navigator.push<UserModel>(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => UsuarioFormScreen(
           usuario: usuario,
-          onGuardar: (u) async {
-            await _usuarioService.cambiarRol(u.id, u.rolId);
-            _cargarUsuarios();
-          },
+          onGuardar: (u) async {},
         ),
       ),
     );
-    if (result != null) await _cargarUsuarios();
+
+    if (result == true) {
+      await _cargarUsuarios();
+    }
   }
 
   Future<void> _toggleBaja(UserModel u) async {
@@ -271,8 +278,21 @@ class _UsuariosListScreenState extends State<UsuariosListScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppTheme.backgroundColorAlt,
     appBar: AppBar(
-      title: const Text('Usuarios'),
+      backgroundColor: AppTheme.backgroundColorAlt,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: const Text(
+        'Usuarios',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: AppTheme.primaryColor,
+        ),
+      ),
       actions: [
         IconButton(
           icon: const Icon(Icons.person_add_outlined),
@@ -317,7 +337,7 @@ class _UsuarioRow extends StatelessWidget {
       style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        color: usuario.activo ? AppTheme.textPrimary : AppTheme.textSecondary,
+        color: usuario.activo ? Colors.white : AppTheme.mutedForegroundColor,
       ),
     ),
     subtitle: Column(
@@ -325,7 +345,10 @@ class _UsuarioRow extends StatelessWidget {
       children: [
         Text(
           usuario.email ?? 'Sin correo',
-          style: const TextStyle(fontSize: 11, color: AppTheme.textTertiary),
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppTheme.mutedForegroundColor,
+          ),
         ),
         const SizedBox(height: 4),
         Wrap(
@@ -351,7 +374,9 @@ class _UsuarioRow extends StatelessWidget {
             usuario.activo ? Icons.person_off_outlined : Icons.person_outline,
             size: 18,
           ),
-          color: usuario.activo ? AppTheme.textSecondary : AppTheme.primary,
+          color: usuario.activo
+              ? AppTheme.mutedForegroundColor
+              : AppTheme.primaryColor,
           tooltip: usuario.activo ? 'Dar de baja' : 'Reactivar',
           onPressed: onBaja,
         ),
@@ -379,10 +404,10 @@ class _RolPill extends StatelessWidget {
       margin: const EdgeInsets.only(right: 6),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: selected ? AppTheme.primary : AppTheme.surface,
+        color: selected ? AppTheme.primaryColor : AppTheme.cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: selected ? AppTheme.primary : AppTheme.border,
+          color: selected ? AppTheme.primaryColor : AppTheme.borderColor,
           width: 0.5,
         ),
       ),
@@ -391,7 +416,7 @@ class _RolPill extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: selected ? Colors.white : AppTheme.textSecondary,
+          color: selected ? Colors.white : AppTheme.mutedForegroundColor,
         ),
       ),
     ),
