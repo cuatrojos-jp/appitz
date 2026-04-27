@@ -4,7 +4,7 @@ class CampoFutbolModel {
   final String direccion;
   final String cantidad;
   final String? fotoUrl;
-  bool disponible; // 
+  bool disponible; 
 
   CampoFutbolModel({
     this.id,
@@ -15,13 +15,15 @@ class CampoFutbolModel {
     this.disponible = true,
   });
 
-  Map<String, dynamic> toJson() {
+  
+  Map<String, dynamic> toJsonSinId() {
     return {
       'nombre': nombre,
       'direccion': direccion,
       'cantidad': cantidad,
       'foto_url': fotoUrl,
-      'disponible': disponible,
+     
+      'disponible': disponible ? 'SI' : 'NO',
     };
   }
 
@@ -32,7 +34,8 @@ class CampoFutbolModel {
       direccion: json['direccion'],
       cantidad: json['cantidad'],
       fotoUrl: json['foto_url'],
-      disponible: json['disponible'] ?? true,
+   
+      disponible: (json['disponible'] ?? 'SI') == 'SI',
     );
   }
 }

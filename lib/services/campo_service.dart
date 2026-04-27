@@ -3,19 +3,12 @@ import '../models/campos_model.dart';
 
 class CampoService {
   final SupabaseClient _client = Supabase.instance.client;
-
   final String table = 'campos';
 
-  // 🔹 CREATE
+
   Future<void> crearCampo(CampoFutbolModel campo) async {
     try {
-      final response = await _client
-          .from(table)
-          .insert(campo.toJson());
-
-      if (response.error != null) {
-        throw Exception(response.error!.message);
-      }
+      await _client.from(table).insert(campo.toJsonSinId());
     } catch (e) {
       print('🔥 Error crearCampo: $e');
       throw Exception('No se pudo crear el campo');
@@ -36,7 +29,7 @@ class CampoService {
     }
   }
 
-  // 🔹 READ (por id)
+  
   Future<CampoFutbolModel?> obtenerCampoPorId(String id) async {
     try {
       final response = await _client
@@ -59,10 +52,10 @@ class CampoService {
     try {
       await _client
           .from(table)
-          .update(campo.toJson())
+          .update(campo.toJsonSinId())
           .eq('id', id);
     } catch (e) {
-      print('🔥 Error actualizarCampo: $e');
+      print(' Error actualizarCampo: $e');
       throw Exception('No se pudo actualizar el campo');
     }
   }
@@ -70,25 +63,22 @@ class CampoService {
   // 🔹 DELETE
   Future<void> eliminarCampo(String id) async {
     try {
-      await _client
-          .from(table)
-          .delete()
-          .eq('id', id);
+      await _client.from(table).delete().eq('id', id);
     } catch (e) {
-      print('🔥 Error eliminarCampo: $e');
+      print(' Error eliminarCampo: $e');
       throw Exception('No se pudo eliminar el campo');
     }
   }
 
-  // 🔹 CAMBIAR DISPONIBILIDAD
-  Future<void> cambiarDisponibilidad(String id, bool estado) async {
+  // 
+  Future<void> cambiarDisponibilidad(String id, String estado) async {
     try {
       await _client
           .from(table)
-          .update({'disponible': estado})
+          .update({'disponible': estado}) // "SI" o "NO"
           .eq('id', id);
     } catch (e) {
-      print('🔥 Error cambiarDisponibilidad: $e');
+      print(' Error cambiarDisponibilidad: $e');
       throw Exception('No se pudo cambiar disponibilidad');
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/campos_model.dart';
 import '../services/campo_service.dart';
+
 class NuevoCampoScreen extends StatefulWidget {
   const NuevoCampoScreen({super.key});
 
@@ -9,7 +10,6 @@ class NuevoCampoScreen extends StatefulWidget {
 }
 
 class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
-  // 🎨 COLORES CONSISTENTES
   static const Color backgroundColor = Color(0xFF1a1a1a);
   static const Color cardColor = Color(0xFF1e1e1e);
   static const Color inputColor = Color(0xFF2a2a2a);
@@ -18,14 +18,15 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
   static const Color textSecondary = Color(0xFF9E9E9E);
   static const Color textMuted = Color(0xFF666666);
 
-  // 📝 CONTROLADORES
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _direccionController = TextEditingController();
-  final TextEditingController _cantidadController = TextEditingController();
   final TextEditingController _fotoUrlController = TextEditingController();
   final CampoService _service = CampoService();
 
-  // 🔘 ESTADO
+  // 🎮 MODALIDADES DE JUEGO
+  String _modalidadSeleccionada = '5v5';
+  final List<String> _modalidades = ['5v5', '6v6', '7v7', '11v11'];
+
   bool _disponible = true;
   bool _isLoading = false;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -34,12 +35,10 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
   void dispose() {
     _nombreController.dispose();
     _direccionController.dispose();
-    _cantidadController.dispose();
     _fotoUrlController.dispose();
     super.dispose();
   }
 
-  // ✅ VALIDAR Y CREAR
   Future<void> _crearCampo() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -50,18 +49,16 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
     });
 
     try {
-      // ✅ CREAR MODELO CON TODOS LOS CAMPOS
       final nuevoCampo = CampoFutbolModel(
         nombre: _nombreController.text.trim(),
         direccion: _direccionController.text.trim(),
-        cantidad: _cantidadController.text.trim(),
-        disponible: _disponible, // ✅ SIN PROBLEMA AQUÍ
+        cantidad: _modalidadSeleccionada, // 🎮 Usar modalidad
+        disponible: _disponible,
         fotoUrl: _fotoUrlController.text.trim().isEmpty
             ? null
             : _fotoUrlController.text.trim(),
       );
 
-      // Llamar al servicio
       await _service.crearCampo(nuevoCampo);
 
       if (mounted) {
@@ -72,7 +69,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
             duration: Duration(seconds: 2),
           ),
         );
-        // ✅ RETORNAR TRUE PARA RECARGAR LA LISTA
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -121,7 +117,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 🔝 HEADER
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +142,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
                             ),
                           ],
                         ),
-                        // ❌ BOTÓN CERRAR
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
                           child: const Icon(
@@ -161,7 +155,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
 
                     const SizedBox(height: 24),
 
-                    // 📝 NOMBRE DEL CAMPO
                     _buildLabel('Nombre del Campo', isRequired: true),
                     const SizedBox(height: 8),
                     _buildTextField(
@@ -181,7 +174,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
 
                     const SizedBox(height: 20),
 
-                    // 📍 DIRECCIÓN
                     _buildLabel('Dirección', isRequired: true),
                     const SizedBox(height: 8),
                     _buildTextField(
@@ -201,27 +193,59 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
 
                     const SizedBox(height: 20),
 
-                    // 📊 CANTIDAD
-                    _buildLabel('Cantidad', isRequired: true),
+                    // 🎮 MODALIDAD
+                    _buildLabel('Modalidad del Campo', isRequired: true),
                     const SizedBox(height: 8),
-                    _buildTextField(
-                      controller: _cantidadController,
-                      hintText: 'Ej: 2',
-                      icon: Icons.numbers,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'La cantidad es requerida';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Debe ser un número';
-                        }
-                        return null;
-                      },
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: inputColor,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: DropdownButton<String>(
+                        value: _modalidadSeleccionada,
+                        isExpanded: true,
+                        underline: const SizedBox(), // Sin línea
+                        dropdownColor: cardColor,
+                        items: _modalidades.map((String modalidad) {
+                          return DropdownMenuItem<String>(
+                            value: modalidad,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.sports_soccer,
+                                  color: primaryColor,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  modalidad,
+                                  style: const TextStyle(
+                                    color: textPrimary,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (String? value) {
+                          if (value != null) {
+                            setState(() {
+                              _modalidadSeleccionada = value;
+                            });
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.expand_more,
+                          color: primaryColor,
+                        ),
+                      ),
                     ),
 
                     const SizedBox(height: 20),
 
-                    // 🖼️ URL FOTO
                     _buildLabel('URL de la Foto'),
                     const SizedBox(height: 8),
                     _buildTextField(
@@ -240,7 +264,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
 
                     const SizedBox(height: 20),
 
-                    // 🔘 TOGGLE DISPONIBILIDAD
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -274,7 +297,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
                               ),
                             ],
                           ),
-                          // Switch animado
                           GestureDetector(
                             onTap: () {
                               setState(() {
@@ -322,10 +344,8 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
 
                     const SizedBox(height: 24),
 
-                    // 🔘 BOTONES
                     Row(
                       children: [
-                        // Cancelar
                         Expanded(
                           child: GestureDetector(
                             onTap: () => Navigator.pop(context),
@@ -349,7 +369,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // Crear
                         Expanded(
                           child: GestureDetector(
                             onTap: _isLoading ? null : _crearCampo,
@@ -410,7 +429,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
     );
   }
 
-  // 🏷️ WIDGET ETIQUETA
   Widget _buildLabel(String text, {bool isRequired = false}) {
     return Text.rich(
       TextSpan(
@@ -433,7 +451,6 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
     );
   }
 
-  // 📝 WIDGET CAMPO DE TEXTO
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
