@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
+// Widget para los campos de texto de Login
+
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;

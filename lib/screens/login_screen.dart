@@ -1,62 +1,66 @@
+import 'package:appitz/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../widgets/custom_text_field.dart';
-import '../services/auth_service.dart';
 import 'dashboard_screen.dart';
+import '../widgets/glow_blob.dart';
+import 'register_screen.dart';
+import '../widgets/register_logo.dart';
+import '../widgets/login_form.dart';
 
-class LoginScreen extends StatelessWidget {
-  LoginScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
 
-  Future<void> handleLogin(BuildContext context) async {
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
 
-    if (email.isEmpty || password.isEmpty) {
-      _showError(context, 'Por favor ingresa email y contraseña');
-      return;
-    }
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
-    try {
-      await _authService.login(email, password);
-      
-      // NO UTILIZAR print() EN PRODUCCION
-      //print("Bienvenido: ${user.nombre}");
-      //print("Rol: $rolId");
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
 
-      if (context.mounted) {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => 
-                const DashboardScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              const begin = Offset(1.0, 0.0);
-              const end = Offset.zero;
-              const curve = Curves.easeInOut;
-              var tween = Tween(begin: begin, end: end)
-                  .chain(CurveTween(curve: curve));
-              var offsetAnimation = animation.drive(tween);
-              return SlideTransition(position: offsetAnimation, child: child);
-            },
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        _showError(context, e.toString());
-      }
-    }
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
+
+    _animController.forward();
   }
 
-  void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+  @override
+  void dispose() {
+    _animController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _navigateToDashboard(BuildContext context) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const DashboardScreen()),
+    );
+  }
+
+  void _navigateToRegister(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegisterScreen(
+          onBack: () => Navigator.pop(context),
+        ),
       ),
     );
   }
@@ -64,56 +68,113 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Login Title
-            Text(
-              "Bienvenido a Appitz",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.titleTextColor,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
+      backgroundColor: AppTheme.backgroundColorAlt,
+      body: Stack(
+        children: [
+          // ── Glow de fondo ──────────────────────────────────────────────
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.15,
+            left: MediaQuery.of(context).size.width * 0.05,
+            child: GlowBlob(),
+          ),
+          Positioned(
+            bottom: MediaQuery.of(context).size.height * 0.1,
+            right: MediaQuery.of(context).size.width * 0.05,
+            child: GlowBlob(),
+          ),
 
-            // Email TextField
-            CustomTextField(
-              controller: emailController,
-              label: "Correo electrónico",
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 20),
+          // ── Contenido ──────────────────────────────────────────────────
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SlideTransition(
+                position: _slideAnim,
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 40,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const RegisterLogo(),
+                          const SizedBox(height: 32),
+                          LoginForm(
+                            onSuccess: () => _navigateToDashboard(context)
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: const [
+                              Expanded(
+                                child: Divider(color: AppTheme.borderColor),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  'o',
+                                  style: TextStyle(
+                                    color: AppTheme.mutedForegroundColor,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Divider(color: AppTheme.borderColor),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
 
-            // Password TextField
-            CustomTextField(
-              controller: passwordController,
-              label: "Contraseña",
-              isPassword: true,
-            ),
-            const SizedBox(height: 30),
+                          GestureDetector(
+                            onTap: () => _navigateToRegister(context),
+                            child: Center(
+                              child: RichText(
+                                text: const TextSpan(
+                                  style: TextStyle(
+                                    color: AppTheme.mutedForegroundColor,
+                                    fontSize: 14,
+                                  ),
+                                  children: [
+                                    TextSpan(text: '¿No tienes cuenta? '),
+                                    TextSpan(
+                                      text: 'Regístrate',
+                                      style: TextStyle(
+                                        color: AppTheme.primaryColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
 
-            // Login Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.buttonColor,
-                  foregroundColor: AppTheme.buttonTextColor,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
+                          _buildFooter(),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                onPressed: () => handleLogin(context),
-                child: const Text("Iniciar sesión"),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Footer ────────────────────────────────────────────────────────────
+  Widget _buildFooter() {
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: const Text(
+        'Al iniciar sesión, aceptas nuestros términos y condiciones',
+        style: TextStyle(color: AppTheme.mutedForegroundColor, fontSize: 11),
+        textAlign: TextAlign.center,
       ),
     );
   }
