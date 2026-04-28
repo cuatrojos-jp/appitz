@@ -7,10 +7,12 @@ import 'login_screen.dart';
 import 'lista_usuarios.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final String rolId;
+  const DashboardScreen({super.key, required this.rolId});
 
   @override
   Widget build(BuildContext context) {
+    final esAdmin = rolId == 'a0d38955-fa67-4751-a36b-777fcf4d8ed9';
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -60,7 +62,8 @@ class DashboardScreen extends StatelessWidget {
                     title: "Jugadores",
                     icon: Icons.people,
                     color: Colors.green,
-                    onTap: () => _navigateTo(context, const JugadoresListScreen()),
+                    onTap: () =>
+                        _navigateTo(context, const JugadoresListScreen()),
                   ),
                   DashboardCard(
                     title: "Campos",
@@ -82,12 +85,15 @@ class DashboardScreen extends StatelessWidget {
                     icon: Icons.settings,
                     color: Colors.grey,
                   ),
-                  DashboardCard(
-                    title: "Usuarios",
-                    icon: Icons.person,
-                    color: Colors.teal,
-                    onTap:() => _navigateTo(context, const UsuariosListScreen()),
-                  ),
+                  if (esAdmin) ...[
+                    DashboardCard(
+                      title: "Usuarios",
+                      icon: Icons.person,
+                      color: Colors.teal,
+                      onTap: () =>
+                          _navigateTo(context, const UsuariosListScreen()),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -98,9 +104,6 @@ class DashboardScreen extends StatelessWidget {
   }
 
   void _navigateTo(BuildContext context, Widget screen) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 }

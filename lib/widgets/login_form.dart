@@ -6,8 +6,8 @@ import 'build_password_field.dart';
 import 'show_snackbar.dart';
 
 class LoginForm extends StatefulWidget {
+  final void Function(String rolId) onSuccess;
   const LoginForm({super.key, required this.onSuccess});
-  final VoidCallback onSuccess;
 
   @override
   State<LoginForm> createState() => _LoginFormState();
@@ -39,9 +39,9 @@ class _LoginFormState extends State<LoginForm> {
     final password = _passwordController.text.trim();
 
     try {
-      await _authService.login(email, password);
+      final (user, rolId, permisos) = await _authService.login(email, password);
       if (mounted) {
-        widget.onSuccess();
+        widget.onSuccess(rolId!);
       }
     } catch (e) {
       if (mounted) {

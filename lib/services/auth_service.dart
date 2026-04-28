@@ -23,7 +23,11 @@ class AuthService {
 
     // Verificar si el usuario está aprobado (activo = true)
     // Si no está aprobado, lanzar excepción para impedir el login
-    if (userData == null || userData['activo'] != true) {
+    if (userData == null) {
+      throw Exception('No se encontraron datos adicionales para el usuario.');
+    }
+
+    if (userData['activo'] != true) {
       throw Exception(
         'Tu cuenta está pendiente de aprobación por el coordinador.',
       );

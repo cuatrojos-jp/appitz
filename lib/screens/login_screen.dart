@@ -15,7 +15,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -47,10 +46,12 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  void _navigateToDashboard(BuildContext context) {
+  void _navigateToDashboard(BuildContext context, String rolId) {  // ← Agregar parámetro rolId
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      MaterialPageRoute(
+        builder: (context) => DashboardScreen(rolId: rolId),
+      ),
     );
   }
 
@@ -58,9 +59,8 @@ class _LoginScreenState extends State<LoginScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => RegisterScreen(
-          onBack: () => Navigator.pop(context),
-        ),
+        builder: (context) =>
+            RegisterScreen(onBack: () => Navigator.pop(context)),
       ),
     );
   }
@@ -103,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen>
                           const RegisterLogo(),
                           const SizedBox(height: 32),
                           LoginForm(
-                            onSuccess: () => _navigateToDashboard(context)
+                            onSuccess: (rolId) => _navigateToDashboard(context, rolId),
                           ),
                           const SizedBox(height: 24),
                           Row(
