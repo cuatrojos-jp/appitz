@@ -31,12 +31,14 @@ class _CamposListScreenState extends State<CamposListScreen> {
     });
   }
 
-  Future<void> _toggleDisponible(
-      CampoFutbolModel campo, bool nuevoEstado) async {
-    setState(() {
-      campo.disponible = nuevoEstado;
-    });
-  }
+ Future<void> _toggleDisponible(
+    CampoFutbolModel campo, bool nuevoEstado) async {
+  await _service.cambiarDisponibilidad(campo.id!, nuevoEstado);
+
+  setState(() {
+    campo.disponible = nuevoEstado;
+  });
+}
 
   @override
   Widget build(BuildContext context) {
