@@ -3,7 +3,7 @@ class TemporadaModel {
   final String id;
   final String nombre;
   final String? descripcion;
-  final DateTime fechaInicio;
+  final DateTime? fechaInicio;
   final DateTime? fechaFin;
   final String estadoId;
 
@@ -11,7 +11,7 @@ class TemporadaModel {
     required this.id,
     required this.nombre,
     this.descripcion,
-    required this.fechaInicio,
+    this.fechaInicio,
     this.fechaFin,
     required this.estadoId,
   });
@@ -19,13 +19,15 @@ class TemporadaModel {
   factory TemporadaModel.fromJson(Map<String, dynamic> json) {
     return TemporadaModel(
       id: json['id'],
-      nombre: json['nombre'],
-      descripcion: json['descripcion'],
-      fechaInicio: DateTime.parse(json['fecha_inicio']),
-      fechaFin: json['fecha_fin'] != null 
-          ? DateTime.parse(json['fecha_fin']) 
+      nombre: json['nombre'] as String,
+      descripcion: json['descripcion'] as String?,
+      fechaInicio: json['fecha_inicio'] != null
+          ? DateTime.parse(json['fecha_inicio'] as String)
           : null,
-      estadoId: json['estado_id'],
+      fechaFin: json['fecha_fin'] != null
+          ? DateTime.parse(json['fecha_fin'] as String)
+          : null,
+      estadoId: json['estado_id'] as String,
     );
   }
 
@@ -33,7 +35,7 @@ class TemporadaModel {
     return {
       'nombre': nombre,
       'descripcion': descripcion,
-      'fecha_inicio': fechaInicio.toIso8601String(),
+      'fecha_inicio': fechaInicio?.toIso8601String(),
       'fecha_fin': fechaFin?.toIso8601String(),
       'estado_id': estadoId,
     };
