@@ -51,6 +51,18 @@ class TemporadaService {
         .eq('id', id);
   }
 
+  Future<void> actualizarTemporada(TemporadaModel temporada) async {
+  await _supabase
+      .from('temporadas')
+      .update({
+        'nombre': temporada.nombre,
+        'descripcion': temporada.descripcion,
+        if (temporada.fechaInicio != null) 'fecha_inicio': temporada.fechaInicio!.toIso8601String(),
+        if (temporada.fechaFin != null) 'fecha_fin': temporada.fechaFin!.toIso8601String(),
+      })
+      .eq('id', temporada.id);
+}
+
   /// Listar todas las temporadas
   Future<List<TemporadaModel>> listarTemporadas() async {
     final response = await _supabase

@@ -1,25 +1,27 @@
 class EquipoModel {
   final String? id;
   final String nombre;
-  final String categoria; // Ej: Infantil, Juvenil, Libre
-  final String? fotoUrl;
-  bool activo;
+  final String? escudoUrl;
+  final String colorPrincipal;
+  final String colorSecundario;
+  final DateTime? creadoEn;
 
   EquipoModel({
     this.id,
     required this.nombre,
-    required this.categoria,
-    this.fotoUrl,
-    this.activo = true,
+    this.escudoUrl,
+    required this.colorPrincipal,
+    required this.colorSecundario,
+    this.creadoEn,
   });
 
-  // 🔹 Para INSERT y UPDATE (sin id)
+  // 🔹 Para INSERT (sin id ni creado_en)
   Map<String, dynamic> toJsonSinId() {
     return {
       'nombre': nombre,
-      'categoria': categoria,
-      'foto_url': fotoUrl,
-      'activo': activo,
+      'escudo_url': escudoUrl,
+      'color_principal': colorPrincipal,
+      'color_secundario': colorSecundario,
     };
   }
 
@@ -28,9 +30,12 @@ class EquipoModel {
     return EquipoModel(
       id: json['id'],
       nombre: json['nombre'],
-      categoria: json['categoria'],
-      fotoUrl: json['foto_url'],
-      activo: json['activo'] ?? true,
+      escudoUrl: json['escudo_url'],
+      colorPrincipal: json['color_principal'],
+      colorSecundario: json['color_secundario'],
+      creadoEn: json['creado_en'] == null
+          ? null
+          : DateTime.parse(json['creado_en'].toString()),
     );
   }
 }

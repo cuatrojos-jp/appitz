@@ -4,6 +4,7 @@ import '../services/temporada_service.dart';
 import '../models/temporadas_model.dart';
 import '../theme/app_theme.dart';
 import 'temporada_form_screen.dart';
+import 'temporada_detail_screen.dart';
 
 class TemporadasListScreen extends StatefulWidget {
   const TemporadasListScreen({super.key});
@@ -87,9 +88,17 @@ class _TemporadasListScreenState extends State<TemporadasListScreen> {
               itemBuilder: (context, index) {
                 final temporada = _temporadas[index];
                 return GestureDetector(
-                  onTap: () {
-                    // TODO: Navegar a pantalla de detalle
-                    print('Ver detalle: ${temporada.nombre}');
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            TemporadaDetailScreen(temporada: temporada),
+                      ),
+                    );
+                    if (result == true) {
+                      _cargarTemporadas();
+                    }
                   },
                   child: Container(
                     margin: const EdgeInsets.symmetric(

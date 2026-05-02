@@ -6,6 +6,7 @@ import '../widgets/dashboard_card.dart';
 import '../widgets/dashboard_header.dart';
 import 'login_screen.dart';
 import 'lista_usuarios.dart';
+import 'nuevo_equipo_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String rolId;
@@ -58,6 +59,8 @@ class DashboardScreen extends StatelessWidget {
                     title: "Equipos",
                     icon: Icons.shield,
                     color: Colors.blue,
+                    onTap: () =>
+                        _navigateTo(context, const NuevoEquipoScreen()),
                   ),
                   DashboardCard(
                     title: "Jugadores",

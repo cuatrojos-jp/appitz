@@ -7,18 +7,23 @@ class EquipoService {
 
   // 🔹 CREATE
   Future<void> crearEquipo(EquipoModel equipo) async {
-    final response = await _client
-        .from(table)
-        .insert(equipo.toJsonSinId());
+    try {
+      final data = await _client
+          .from(table)
+          .insert(equipo.toJsonSinId())
+          .select()
+          .single();
 
-    print('✅ INSERT EQUIPO: $response');
+      print('✅ INSERT EQUIPO: $data');
+    } catch (e) {
+      print('🔥 Error al crear equipo, verifique todos los datos: $e');
+      rethrow;
+    }
   }
 
-  // 🔹 READ (todos)
+  // 🔹 READ todos
   Future<List<EquipoModel>> obtenerEquipos() async {
     final response = await _client.from(table).select();
-
-    print('✅ SELECT EQUIPOS: $response');
 
     return (response as List)
         .map((json) => EquipoModel.fromJson(json))
@@ -33,8 +38,6 @@ class EquipoService {
         .eq('id', id)
         .maybeSingle();
 
-    print('✅ SELECT EQUIPO ID: $response');
-
     if (response == null) return null;
 
     return EquipoModel.fromJson(response);
@@ -42,29 +45,11 @@ class EquipoService {
 
   // 🔹 UPDATE
   Future<void> actualizarEquipo(String id, EquipoModel equipo) async {
-    final response = await _client
-        .from(table)
-        .update(equipo.toJsonSinId())
-        .eq('id', id);
-
-    print('✅ UPDATE EQUIPO: $response');
+    await _client.from(table).update(equipo.toJsonSinId()).eq('id', id);
   }
 
   // 🔹 DELETE
   Future<void> eliminarEquipo(String id) async {
-    final response =
-        await _client.from(table).delete().eq('id', id);
-
-    print('✅ DELETE EQUIPO: $response');
-  }
-
-  // 🔥 CAMBIAR ACTIVO (BOOL)
-  Future<void> cambiarActivo(String id, bool estado) async {
-    final response = await _client
-        .from(table)
-        .update({'activo': estado})
-        .eq('id', id);
-
-    print('✅ CAMBIAR ACTIVO: $response');
+    await _client.from(table).delete().eq('id', id);
   }
 }
