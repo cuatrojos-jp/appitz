@@ -21,7 +21,7 @@ class TemporadaService {
       'nombre': nombre,
       'descripcion': descripcion,
       if (fechaInicio != null) 'fecha_inicio': fechaInicio.toIso8601String(),
-      if (fechaInicio != null) 'fecha_inicio': fechaInicio.toIso8601String(),
+      if (fechaFin != null) 'fecha_fin': fechaFin.toIso8601String(),
     }).select().single();
 
     return TemporadaModel.fromJson(response);
