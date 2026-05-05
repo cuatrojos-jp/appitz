@@ -8,6 +8,14 @@ class EquipoService {
   // 🔹 CREATE
   Future<void> crearEquipo(EquipoModel equipo) async {
     try {
+      // Validar que los datos no estén vacíos
+      if (equipo.nombre.isEmpty) {
+        throw Exception('El nombre del equipo no puede estar vacío');
+      }
+      if (equipo.colorPrincipal.isEmpty || equipo.colorSecundario.isEmpty) {
+        throw Exception('Los colores son obligatorios');
+      }
+
       final data = await _client
           .from(table)
           .insert(equipo.toJsonSinId())
@@ -16,7 +24,7 @@ class EquipoService {
 
       print('✅ INSERT EQUIPO: $data');
     } catch (e) {
-      print('🔥 Error al crear equipo, verifique todos los datos: $e');
+      print('🔥 Error al crear equipo: $e');
       rethrow;
     }
   }
