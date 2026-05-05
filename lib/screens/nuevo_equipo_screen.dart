@@ -42,20 +42,50 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
   Future<void> guardarEquipo() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final equipo = EquipoModel(
-      nombre: nombreController.text.trim(),
-      escudoUrl: logoController.text.trim(),
-      colorPrincipal: _colorToHex(colorPrimario),
-      colorSecundario: _colorToHex(colorSecundario),
-    );
+    try {
+      final equipo = EquipoModel(
+        nombre: nombreController.text.trim(),
+        escudoUrl: logoController.text.trim(),
+        colorPrincipal: _colorToHex(colorPrimario),
+        colorSecundario: _colorToHex(colorSecundario),
+      );
 
-    if (editando) {
-      await _service.actualizarEquipo(widget.equipo!.id!, equipo);
-    } else {
-      await _service.crearEquipo(equipo);
+      if (editando) {
+        await _service.actualizarEquipo(widget.equipo!.id!, equipo);
+      } else {
+        await _service.crearEquipo(equipo);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              editando 
+                ? '✅ Equipo actualizado con éxito' 
+                : '✅ Equipo creado con éxito',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        // Limpiar formulario para crear otro equipo
+        nombreController.clear();
+        logoController.clear();
+        colorPrimario = const Color(0xFF6EE7B7);
+        colorSecundario = const Color(0xFF1A1A1E);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      print('🔥 Error al guardar equipo: $e');
     }
-
-    if (mounted) Navigator.pop(context, true);
   }
 
   Color _hexToColor(String hex) {
