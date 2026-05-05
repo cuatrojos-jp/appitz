@@ -9,6 +9,7 @@ import 'lista_usuarios.dart';
 import 'nuevo_equipo_screen.dart';
 import 'temporada_screen.dart';
 import 'categorias_list_screen.dart';
+import 'campos_list_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String rolId;
@@ -75,6 +76,8 @@ class DashboardScreen extends StatelessWidget {
                     title: "Campos",
                     icon: Icons.sports_soccer,
                     color: Colors.orange,
+                    onTap: () =>
+                        _navigateTo(context, const CamposListScreen()),
                   ),
                   DashboardCard(
                     title: "Partidos",
