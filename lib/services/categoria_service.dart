@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/categorias_model.dart';
+import '../utils/string_utils.dart';
 
 class CategoriaService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -72,7 +73,7 @@ class CategoriaService {
   }) async {
     var query = _supabase
         .from('categorias')
-        .select('id',)
+        .select('id')
         .eq('nombre', nombre)
         .eq('temporada_id', temporadaId);
 
@@ -82,5 +83,47 @@ class CategoriaService {
 
     final response = await query.limit(1);
     return response.isNotEmpty;
+  }
+
+  /// Obtener todas las categorías con datos de la temporada (JOIN)
+  Future<List<CategoriaModel>> obtenerTodasConTemporada() async {
+    final response = await _supabase
+        .from('categorias')
+        .select('''
+        id,
+        nombre,
+        descripcion,
+        temporada_id,
+        temporadas!inner(nombre)
+      ''')
+        .order('nombre', ascending: true);
+
+    // Convertir Map a CategoriaModel dentro del servicio
+    return response.map((json) => CategoriaModel.fromJson(json)).toList();
+  }
+  /// Verificar si existe otra categoría con el mismo nombre en la misma temporada (ignorando mayúsculas, acentos y espacios)
+  Future<bool> existeNombreEnTemporada({
+    required String nombre,
+    required String temporadaId,
+    String? excludeId,
+  }) async {
+    var query = _supabase
+        .from('categorias')
+        .select('id, nombre')
+        .eq('temporada_id', temporadaId);
+
+    if (excludeId != null) {
+      query = query.neq('id', excludeId);
+    }
+
+    final response = await query;
+
+    final nombreNormalizado = StringUtils.normalize(nombre);
+
+    return response.any((categoria) {
+      final nombreExistente = categoria['nombre'] as String;
+      final nombreExistenteNormalizado = StringUtils.normalize(nombreExistente);
+      return nombreExistenteNormalizado == nombreNormalizado;
+    });
   }
 }

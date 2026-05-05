@@ -8,6 +8,7 @@ import 'login_screen.dart';
 import 'lista_usuarios.dart';
 import 'nuevo_equipo_screen.dart';
 import 'temporada_screen.dart';
+import 'categorias_list_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String rolId;
@@ -84,6 +85,12 @@ class DashboardScreen extends StatelessWidget {
                     title: "Estadísticas",
                     icon: Icons.bar_chart,
                     color: Colors.red,
+                  ),
+                  DashboardCard(
+                    title: "Categorías",
+                    icon: Icons.category,
+                    color: const Color.fromARGB(255, 190, 106, 134),
+                    onTap: () => _navigateTo(context, CategoriasListScreen()),
                   ),
                   DashboardCard(
                     title: "Temporadas",
