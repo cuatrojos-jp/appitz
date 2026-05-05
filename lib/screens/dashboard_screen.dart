@@ -1,5 +1,5 @@
 import 'package:appitz/screens/jugador_list_screen.dart';
-import 'package:appitz/screens/temporadas_list_screen.dart';
+//import 'package:appitz/screens/temporadas_list_screen.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dashboard_card.dart';
@@ -7,6 +7,8 @@ import '../widgets/dashboard_header.dart';
 import 'login_screen.dart';
 import 'lista_usuarios.dart';
 import 'nuevo_equipo_screen.dart';
+import 'temporada_screen.dart';
+import 'categorias_list_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String rolId;
@@ -85,10 +87,16 @@ class DashboardScreen extends StatelessWidget {
                     color: Colors.red,
                   ),
                   DashboardCard(
+                    title: "Categorías",
+                    icon: Icons.category,
+                    color: const Color.fromARGB(255, 190, 106, 134),
+                    onTap: () => _navigateTo(context, CategoriasListScreen()),
+                  ),
+                  DashboardCard(
                     title: "Temporadas",
                     icon: Icons.event,
                     color: Colors.brown,
-                    onTap: () => _navigateTo(context, TemporadasListScreen()),
+                    onTap: () => _navigateTo(context, TemporadaScreen()),
                   ),
                   DashboardCard(
                     title: "Configuración",
