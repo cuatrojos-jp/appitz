@@ -1,11 +1,9 @@
-// lib/services/temporada_service.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/temporadas_model.dart';
 
 class TemporadaService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  //static const String _estadoProgramadoId = '32dd8daf-4d3f-4a2d-9cda-98f13af88493';
   static const String _estadoActivoId = 'a4a0e12b-40b9-4c7a-979b-654e7807e012';
   static const String _estadoFinalizadoId =
       'af6a7363-5105-4c22-9b03-4f77be807264';
@@ -128,5 +126,20 @@ class TemporadaService {
         .maybeSingle();
 
     return response != null ? TemporadaModel.fromJson(response) : null;
+  }
+
+  /// Verificar si existe una temporada activa o programada
+  Future<bool> existeTemporadaActivaOProgramada({String? excludeId}) async {
+    var query = _supabase.from('temporadas').select('id').inFilter(
+      'estado_id',
+      [_estadoActivoId, _estadoProgramadoId],
+    );
+
+    if (excludeId != null) {
+      query = query.neq('id', excludeId);
+    }
+
+    final response = await query;
+    return response.isNotEmpty;
   }
 }
