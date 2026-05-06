@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/temporada_service.dart';
 import '../models/temporadas_model.dart';
-// import '../widgets/show_snackbar.dart';
+import 'agregar_temporada_screen.dart';
+import '../widgets/show_snackbar.dart';
 
 class TemporadaScreen extends StatefulWidget {
   const TemporadaScreen({super.key});
@@ -23,14 +24,23 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
   final TemporadaService _temporadaService = TemporadaService();
   List<TemporadaModel> _temporadas = [];
   bool _isLoading = true;
+  bool _existeTemporadaActivaProgramada = false;
   String? _errorMessage;
-  String _filtroEstado =
+  final String _filtroEstado =
       'todos'; // 'todos', 'activo', 'programado', 'finalizado'
 
   @override
   void initState() {
     super.initState();
     _cargarTemporadas();
+    _verificarExistenciaTemporada();
+  }
+
+  Future<void> _verificarExistenciaTemporada() async {
+    final existe = await _temporadaService.existeTemporadaActivaOProgramada();
+    setState(() {
+      _existeTemporadaActivaProgramada = existe;
+    });
   }
 
   Future<void> _cargarTemporadas() async {
@@ -220,10 +230,25 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
         ),
         // Botón Nueva Temporada
         GestureDetector(
-          onTap: () {
-            // TODO: Navegar a pantalla de crear temporada
-            print('Navegar a crear temporada');
-          },
+          onTap: _existeTemporadaActivaProgramada
+              ? () {
+                  showSnackBar(
+                    context,
+                    'No puedes crear una nueva temporada mientras exista una activa o programada.',
+                    color: Colors.orange,
+                  );
+                }
+              : () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AgregarTemporadaScreen(),
+                    ),
+                  );
+                  if (result == true) {
+                    _cargarTemporadas();
+                  }
+                },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
@@ -598,9 +623,17 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
                 children: [
                   _buildActionButton(
                     icon: Icons.edit_outlined,
-                    onTap: () {
-                      // TODO: Navegar a editar temporada
-                      print('Editar: ${temporada.nombre}');
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              AgregarTemporadaScreen(temporada: temporada),
+                        ),
+                      );
+                      if (result == true) {
+                        _cargarTemporadas(); // Recargar lista
+                      }
                     },
                   ),
                   const SizedBox(width: 8),
