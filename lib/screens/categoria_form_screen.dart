@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/categorias_model.dart';
-import '../models/temporadas_model.dart';
 import '../services/categoria_service.dart';
 import '../services/temporada_service.dart';
 import '../widgets/show_snackbar.dart';
@@ -24,8 +23,8 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
   final CategoriaService _categoriaService = CategoriaService();
   final TemporadaService _temporadaService = TemporadaService();
 
-  List<TemporadaModel> _temporadas = [];
-  String? _selectedTemporadaId;
+  String? _temporadaIdAsignada;
+  String? _temporadaNombreAsignada;
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
@@ -35,12 +34,13 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarTemporadas();
-
+    _cargarTemporadaProgramada();
+    
     if (_esEdicion) {
       _nombreController.text = widget.categoria!.nombre;
       _descripcionController.text = widget.categoria!.descripcion ?? '';
-      _selectedTemporadaId = widget.categoria!.temporadaId;
+      _temporadaIdAsignada = widget.categoria!.temporadaId;
+      _temporadaNombreAsignada = widget.categoria!.temporadaNombre;
     }
   }
 
@@ -51,19 +51,25 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
     super.dispose();
   }
 
-  Future<void> _cargarTemporadas() async {
+  Future<void> _cargarTemporadaProgramada() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final temporadas = await _temporadaService
-          .obtenerTemporadasActivasYProgramadas();
-      setState(() {
-        _temporadas = temporadas;
-        _isLoading = false;
-      });
+      if (_esEdicion) {
+        setState(() {
+          _isLoading = false;
+        });
+      } else {
+        final temporada = await _temporadaService.obtenerPrimeraTemporadaProgramada();
+        setState(() {
+          _temporadaIdAsignada = temporada.id;
+          _temporadaNombreAsignada = temporada.nombre;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -74,26 +80,34 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedTemporadaId == null) {
-      showSnackBar(context, 'Selecciona una temporada');
+    
+    if (!_esEdicion && _temporadaIdAsignada == null) {
+      showSnackBar(
+        context,
+        'No hay temporadas programadas disponibles. Crea una temporada programada primero.',
+        color: Colors.orange,
+      );
       return;
     }
 
     final nombre = _nombreController.text.trim();
-    final existe = await _categoriaService.existeNombreEnTemporada(
-      nombre: nombre,
-      temporadaId: _selectedTemporadaId!,
-      excludeId: _esEdicion ? widget.categoria!.id : null,
-    );
-
-    if (existe) {
-      showSnackBar(
-        context,
-        'Ya existe una categoría con este nombre en la temporada seleccionada',
-        color: Colors.redAccent,
-        textColor: Colors.white,
+    
+    if (_temporadaIdAsignada != null) {
+      final existe = await _categoriaService.existeNombreEnTemporada(
+        nombre: nombre,
+        temporadaId: _temporadaIdAsignada!,
+        excludeId: _esEdicion ? widget.categoria!.id : null,
       );
-      return;
+
+      if (existe) {
+        showSnackBar(
+          context,
+          'Ya existe una categoría con este nombre en la temporada seleccionada',
+          color: Colors.redAccent,
+          textColor: Colors.white,
+        );
+        return;
+      }
     }
 
     setState(() => _isSaving = true);
@@ -101,9 +115,9 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
     try {
       final categoria = CategoriaModel(
         id: _esEdicion ? widget.categoria!.id : '',
-        temporadaId: _selectedTemporadaId!,
-        temporadaNombre: '',
-        nombre: _nombreController.text.trim(),
+        temporadaId: _temporadaIdAsignada!,
+        temporadaNombre: _temporadaNombreAsignada ?? '',
+        nombre: nombre,
         descripcion: _descripcionController.text.trim().isEmpty
             ? null
             : _descripcionController.text.trim(),
@@ -217,51 +231,51 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Dropdown: Temporada
-                    DropdownButtonFormField<String>(
-                      value: _selectedTemporadaId,
-                      isExpanded: true,
-                      style: const TextStyle(color: Colors.white),
-                      dropdownColor: AppTheme.cardColor,
-                      decoration: InputDecoration(
-                        labelText: 'Temporada *',
-                        labelStyle: const TextStyle(
-                          color: AppTheme.mutedForegroundColor,
-                        ),
-                        filled: true,
-                        fillColor: AppTheme.secondaryColor,
-                        border: OutlineInputBorder(
+                    // Mostrar temporada asignada (solo lectura)
+                    if (_temporadaIdAsignada != null) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryColor,
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppTheme.borderColor,
-                          ),
+                          border: Border.all(color: AppTheme.borderColor),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppTheme.borderColor,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppTheme.primaryColor,
-                            width: 2,
-                          ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.calendar_today,
+                              color: AppTheme.primaryColor,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Temporada',
+                                    style: TextStyle(
+                                      color: AppTheme.mutedForegroundColor,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _esEdicion ? _temporadaNombreAsignada ?? '' : _temporadaNombreAsignada!,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      items: _temporadas.map((t) {
-                        return DropdownMenuItem(
-                          value: t.id,
-                          child: Text(t.nombre),
-                        );
-                      }).toList(),
-                      onChanged: (value) =>
-                          setState(() => _selectedTemporadaId = value),
-                      validator: (v) =>
-                          v == null ? 'Selecciona una temporada' : null,
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Campo: Descripción (opcional)
                     TextFormField(
@@ -303,52 +317,33 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
     );
   }
 
-  // En CategoriaFormScreen, agregar método de validación
-
-  Future<String?> _validarNombreUnico(String? value) async {
-    if (value == null || value.trim().isEmpty) {
-      return 'El nombre es requerido';
-    }
-
-    final nombreNormalizado = StringUtils.normalize(value);
-    if (nombreNormalizado.isEmpty) {
-      return 'Nombre inválido';
-    }
-
-    // Verificar si ya existe otra categoría con el mismo nombre en esta temporada
-    final existe = await _categoriaService.existeNombreEnTemporada(
-      nombre: value,
-      temporadaId: _selectedTemporadaId ?? '',
-      excludeId: _esEdicion ? widget.categoria!.id : null,
-    );
-
-    if (existe) {
-      return 'Ya existe una categoría con este nombre en la temporada seleccionada';
-    }
-
-    return null;
-  }
-
   Widget _buildErrorView() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
-          const SizedBox(height: 16),
-          Text(_errorMessage!, style: const TextStyle(color: Colors.white)),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _cargarTemporadas,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.white),
+              textAlign: TextAlign.center,
             ),
-            child: const Text(
-              'Reintentar',
-              style: TextStyle(color: Colors.black),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _cargarTemporadaProgramada,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+              ),
+              child: const Text(
+                'Reintentar',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
