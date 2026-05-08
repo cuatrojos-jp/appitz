@@ -5,6 +5,7 @@ class EquipoModel {
   final String colorPrincipal;
   final String colorSecundario;
   final DateTime? creadoEn;
+  final String? cantidad;
 
   EquipoModel({
     this.id,
@@ -13,6 +14,7 @@ class EquipoModel {
     required this.colorPrincipal,
     required this.colorSecundario,
     this.creadoEn,
+    this.cantidad,
   });
 
   // 🔹 Para INSERT (sin id ni creado_en)
@@ -22,6 +24,7 @@ class EquipoModel {
       'escudo_url': escudoUrl,
       'color_principal': colorPrincipal,
       'color_secundario': colorSecundario,
+      'cantidad': cantidad,
     };
   }
 
@@ -33,6 +36,7 @@ class EquipoModel {
       escudoUrl: json['escudo_url'],
       colorPrincipal: json['color_principal'],
       colorSecundario: json['color_secundario'],
+      cantidad: json['cantidad'],
       creadoEn: json['creado_en'] == null
           ? null
           : DateTime.parse(json['creado_en'].toString()),

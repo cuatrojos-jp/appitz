@@ -129,4 +129,86 @@ class TemporadaService {
 
     return response != null ? TemporadaModel.fromJson(response) : null;
   }
+
+  /// Verificar si existe una temporada activa
+  Future<bool> existeTemporadaActiva({String? excludeId}) async {
+    var query = _supabase
+        .from('temporadas')
+        .select('id')
+        .eq('estado_id', _estadoActivoId);
+
+    if (excludeId != null) {
+      query = query.neq('id', excludeId);
+    }
+
+    final response = await query.limit(1);
+    return response.isNotEmpty;
+  }
+
+  /// Obtener la temporada activa (asume que solo hay una)
+  Future<TemporadaModel?> obtenerTemporadaActiva() async {
+    final response = await _supabase
+        .from('temporadas')
+        .select('''
+        id,
+        nombre,
+        descripcion,
+        fecha_inicio,
+        fecha_fin,
+        estado_id,
+        estados_temporada!inner(codigo)
+      ''')
+        .eq('estado_id', _estadoActivoId)
+        .maybeSingle();
+
+    return response != null ? TemporadaModel.fromJson(response) : null;
+  }
+
+  /// Obtener la temporada actual (primero activa, si no hay, la programada)
+  Future<TemporadaModel?> obtenerTemporadaActual() async {
+    // Primero buscar activa
+    final activa = await obtenerTemporadaActiva();
+    if (activa != null) return activa;
+
+    // Si no hay activa, buscar programada
+    final response = await _supabase
+        .from('temporadas')
+        .select('''
+        id,
+        nombre,
+        descripcion,
+        fecha_inicio,
+        fecha_fin,
+        estado_id,
+        estados_temporada!inner(codigo)
+      ''')
+        .eq('estado_id', _estadoProgramadoId)
+        .limit(1)
+        .maybeSingle();
+
+    return response != null ? TemporadaModel.fromJson(response) : null;
+  }
+
+  /// Verificar si una temporada es histórica (finalizada o suspendida)
+  Future<bool> esTemporadaHistorica(String temporadaId) async {
+    final response = await _supabase
+        .from('temporadas')
+        .select('estado_id')
+        .eq('id', temporadaId)
+        .single();
+
+    final estadoId = response['estado_id'] as String;
+    return estadoId == _estadoFinalizadoId || estadoId == _estadoSuspendidoId;
+  }
+
+  /// Obtener el estado de una temporada (devuelve el string: 'activo', 'programado', etc.)
+  Future<String?> obtenerEstadoTemporada(String temporadaId) async {
+    final response = await _supabase
+        .from('temporadas')
+        .select('estados_temporada!inner(codigo)')
+        .eq('id', temporadaId)
+        .maybeSingle();
+
+    return response?['estados_temporada']?['codigo'] as String?;
+  }
 }

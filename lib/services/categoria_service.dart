@@ -92,7 +92,6 @@ class CategoriaService {
         .select('''
         id,
         nombre,
-        descripcion,
         temporada_id,
         temporadas!inner(nombre)
       ''')

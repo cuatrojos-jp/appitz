@@ -3,14 +3,12 @@ class CategoriaModel {
   final String temporadaId;
   final String? temporadaNombre;
   final String nombre;
-  final String? descripcion;
 
   CategoriaModel({
     required this.id,
     required this.temporadaId,
     this.temporadaNombre, 
     required this.nombre,
-    this.descripcion,
   });
 
   factory CategoriaModel.fromJson(Map<String, dynamic> json) {
@@ -19,7 +17,6 @@ class CategoriaModel {
       temporadaId: json['temporada_id'] as String,
       temporadaNombre: (json['temporadas'] as Map<String, dynamic>?)?['nombre'] as String?,
       nombre: json['nombre'] as String,
-      descripcion: json['descripcion'] as String?,
     );
   }
 
@@ -28,7 +25,6 @@ class CategoriaModel {
       if (id.isNotEmpty) 'id': id,
       'temporada_id': temporadaId,
       'nombre': nombre,
-      if (descripcion != null) 'descripcion': descripcion,
     };
   }
 
@@ -44,7 +40,6 @@ class CategoriaModel {
       temporadaId: temporadaId ?? this.temporadaId,
       temporadaNombre: temporadaNombre ?? this.temporadaNombre,
       nombre: nombre ?? this.nombre,
-      descripcion: descripcion ?? this.descripcion,
     );
   }
 }

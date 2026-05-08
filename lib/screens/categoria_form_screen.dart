@@ -5,7 +5,7 @@ import '../models/temporadas_model.dart';
 import '../services/categoria_service.dart';
 import '../services/temporada_service.dart';
 import '../widgets/show_snackbar.dart';
-import '../utils/string_utils.dart';
+//import '../utils/string_utils.dart';
 
 class CategoriaFormScreen extends StatefulWidget {
   final CategoriaModel? categoria;
@@ -19,7 +19,6 @@ class CategoriaFormScreen extends StatefulWidget {
 class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
-  final _descripcionController = TextEditingController();
 
   final CategoriaService _categoriaService = CategoriaService();
   final TemporadaService _temporadaService = TemporadaService();
@@ -39,7 +38,6 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
 
     if (_esEdicion) {
       _nombreController.text = widget.categoria!.nombre;
-      _descripcionController.text = widget.categoria!.descripcion ?? '';
       _selectedTemporadaId = widget.categoria!.temporadaId;
     }
   }
@@ -47,7 +45,6 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
   @override
   void dispose() {
     _nombreController.dispose();
-    _descripcionController.dispose();
     super.dispose();
   }
 
@@ -80,6 +77,17 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
     }
 
     final nombre = _nombreController.text.trim();
+
+    if (nombre.length > 80) {
+      showSnackBar(
+        context,
+        'El nombre no puede exceder los 80 caracteres',
+        color: Colors.redAccent,
+        textColor: Colors.white,
+      );
+      return;
+    }
+
     final existe = await _categoriaService.existeNombreEnTemporada(
       nombre: nombre,
       temporadaId: _selectedTemporadaId!,
@@ -103,10 +111,7 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
         id: _esEdicion ? widget.categoria!.id : '',
         temporadaId: _selectedTemporadaId!,
         temporadaNombre: '',
-        nombre: _nombreController.text.trim(),
-        descripcion: _descripcionController.text.trim().isEmpty
-            ? null
-            : _descripcionController.text.trim(),
+        nombre: nombre,
       );
 
       if (_esEdicion) {
@@ -184,6 +189,7 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
                     TextFormField(
                       controller: _nombreController,
                       style: const TextStyle(color: Colors.white),
+                      maxLength: 80,
                       decoration: InputDecoration(
                         labelText: 'Nombre *',
                         labelStyle: const TextStyle(
@@ -191,6 +197,9 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
                         ),
                         filled: true,
                         fillColor: AppTheme.secondaryColor,
+                        counterStyle: const TextStyle(
+                          color: AppTheme.mutedForegroundColor,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
@@ -211,9 +220,15 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
                           ),
                         ),
                       ),
-                      validator: (v) => v == null || v.trim().isEmpty
-                          ? 'El nombre es requerido'
-                          : null,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'El nombre es requerido';
+                        }
+                        if (v.trim().length > 80) {
+                          return 'El nombre no puede exceder 80 caracteres';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -261,41 +276,6 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
                       validator: (v) =>
                           v == null ? 'Selecciona una temporada' : null,
                     ),
-                    const SizedBox(height: 16),
-
-                    // Campo: Descripción (opcional)
-                    TextFormField(
-                      controller: _descripcionController,
-                      style: const TextStyle(color: Colors.white),
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        labelText: 'Descripción',
-                        labelStyle: const TextStyle(
-                          color: AppTheme.mutedForegroundColor,
-                        ),
-                        filled: true,
-                        fillColor: AppTheme.secondaryColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppTheme.borderColor,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppTheme.borderColor,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppTheme.primaryColor,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -303,31 +283,32 @@ class _CategoriaFormScreenState extends State<CategoriaFormScreen> {
     );
   }
 
-  // En CategoriaFormScreen, agregar método de validación
+  // Future<String?> _validarNombreUnico(String? value) async {
+  //   if (value == null || value.trim().isEmpty) {
+  //     return 'El nombre es requerido';
+  //   }
 
-  Future<String?> _validarNombreUnico(String? value) async {
-    if (value == null || value.trim().isEmpty) {
-      return 'El nombre es requerido';
-    }
+  //   if (value.trim().length > 80) {
+  //     return 'El nombre no puede exceder 80 caracteres';
+  //   }
 
-    final nombreNormalizado = StringUtils.normalize(value);
-    if (nombreNormalizado.isEmpty) {
-      return 'Nombre inválido';
-    }
+  //   final nombreNormalizado = StringUtils.normalize(value);
+  //   if (nombreNormalizado.isEmpty) {
+  //     return 'Nombre inválido';
+  //   }
 
-    // Verificar si ya existe otra categoría con el mismo nombre en esta temporada
-    final existe = await _categoriaService.existeNombreEnTemporada(
-      nombre: value,
-      temporadaId: _selectedTemporadaId ?? '',
-      excludeId: _esEdicion ? widget.categoria!.id : null,
-    );
+  //   final existe = await _categoriaService.existeNombreEnTemporada(
+  //     nombre: value,
+  //     temporadaId: _selectedTemporadaId ?? '',
+  //     excludeId: _esEdicion ? widget.categoria!.id : null,
+  //   );
 
-    if (existe) {
-      return 'Ya existe una categoría con este nombre en la temporada seleccionada';
-    }
+  //   if (existe) {
+  //     return 'Ya existe una categoría con este nombre en la temporada seleccionada';
+  //   }
 
-    return null;
-  }
+  //   return null;
+  // }
 
   Widget _buildErrorView() {
     return Center(

@@ -196,7 +196,6 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
 
   Widget _buildCategoriaCard(CategoriaModel categoria) {
     final nombre = categoria.nombre;
-    final descripcion = categoria.descripcion;
     final temporadaNombre = categoria.temporadaNombre;
     final id = categoria.id;
 
@@ -281,16 +280,6 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
               ),
             ],
           ),
-          if (descripcion != null && descripcion.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              descripcion,
-              style: TextStyle(
-                color: AppTheme.mutedForegroundColor,
-                fontSize: 13,
-              ),
-            ),
-          ],
         ],
       ),
     );
