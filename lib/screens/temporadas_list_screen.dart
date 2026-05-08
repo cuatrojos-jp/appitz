@@ -1,4 +1,5 @@
-// lib/screens/temporadas_list_screen.dart
+// PANTALLA VIEJA
+
 import 'package:flutter/material.dart';
 import '../services/temporada_service.dart';
 import '../models/temporadas_model.dart';

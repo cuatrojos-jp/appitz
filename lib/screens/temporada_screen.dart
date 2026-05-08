@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/temporada_service.dart';
 import '../models/temporadas_model.dart';
-// import '../widgets/show_snackbar.dart';
+import 'agregar_temporada_screen.dart';
+import '../widgets/show_snackbar.dart';
 
 class TemporadaScreen extends StatefulWidget {
   const TemporadaScreen({super.key});
@@ -23,14 +24,23 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
   final TemporadaService _temporadaService = TemporadaService();
   List<TemporadaModel> _temporadas = [];
   bool _isLoading = true;
+  bool _existeTemporadaActivaProgramada = false;
   String? _errorMessage;
-  String _filtroEstado =
+  final String _filtroEstado =
       'todos'; // 'todos', 'activo', 'programado', 'finalizado'
 
   @override
   void initState() {
     super.initState();
     _cargarTemporadas();
+    _verificarExistenciaTemporada();
+  }
+
+  Future<void> _verificarExistenciaTemporada() async {
+    final existe = await _temporadaService.existeTemporadaActivaOProgramada();
+    setState(() {
+      _existeTemporadaActivaProgramada = existe;
+    });
   }
 
   Future<void> _cargarTemporadas() async {
@@ -50,6 +60,131 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
         _errorMessage = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  void _mostrarMenuEstados(TemporadaModel temporada) {
+    final estadoActual = temporada.estadoId;
+
+    List<Map<String, dynamic>> opciones = [];
+
+    if (estadoActual == _estadoProgramadoId) {
+      opciones = [
+        {
+          'label': 'Activar',
+          'icon': Icons.play_arrow,
+          'estadoId': _estadoActivoId,
+          'color': Colors.green,
+        },
+        {
+          'label': 'Suspender',
+          'icon': Icons.pause,
+          'estadoId': _estadoSuspendidoId,
+          'color': Colors.orange,
+        },
+      ];
+    } else if (estadoActual == _estadoActivoId) {
+      opciones = [
+        {
+          'label': 'Finalizar',
+          'icon': Icons.check,
+          'estadoId': _estadoFinalizadoId,
+          'color': Colors.blue,
+        },
+        {
+          'label': 'Suspender',
+          'icon': Icons.pause,
+          'estadoId': _estadoSuspendidoId,
+          'color': Colors.orange,
+        },
+      ];
+    } else {
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Cambiar estado',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Divider(color: AppTheme.borderColor),
+              ...opciones.map(
+                (opcion) => ListTile(
+                  leading: Icon(opcion['icon'], color: opcion['color']),
+                  title: Text(
+                    opcion['label'],
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _cambiarEstadoTemporada(
+                      temporada.id,
+                      opcion['estadoId'],
+                      opcion['label'],
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _cambiarEstadoTemporada(
+    String id,
+    String nuevoEstadoId,
+    String accion,
+  ) async {
+    if (nuevoEstadoId == _estadoActivoId) {
+      final existeOtraActiva = await _temporadaService
+          .existeTemporadaActivaOProgramada(excludeId: id);
+      if (existeOtraActiva) {
+        showSnackBar(
+          context,
+          'No se puede activar. Ya hay otra temporada activa.',
+          color: Colors.orange,
+        );
+        return;
+      }
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      if (nuevoEstadoId == _estadoActivoId) {
+        await _temporadaService.activarTemporada(id);
+      } else if (nuevoEstadoId == _estadoFinalizadoId) {
+        await _temporadaService.finalizarTemporada(id);
+      } else if (nuevoEstadoId == _estadoSuspendidoId) {
+        await _temporadaService.suspenderTemporada(id);
+      }
+
+      showSnackBar(context, 'Temporada $accion', color: Colors.green);
+      await _cargarTemporadas();
+    } catch (e) {
+      showSnackBar(context, 'Error: ${e.toString()}', color: Colors.red);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -220,14 +355,31 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
         ),
         // Botón Nueva Temporada
         GestureDetector(
-          onTap: () {
-            // TODO: Navegar a pantalla de crear temporada
-            print('Navegar a crear temporada');
-          },
+          onTap: _existeTemporadaActivaProgramada
+              ? () {
+                  showSnackBar(
+                    context,
+                    'No puedes crear una nueva temporada mientras exista una activa o programada.',
+                    color: Colors.orange,
+                  );
+                }
+              : () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AgregarTemporadaScreen(),
+                    ),
+                  );
+                  if (result == true) {
+                    _cargarTemporadas();
+                  }
+                },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor,
+              color: _existeTemporadaActivaProgramada
+                  ? Colors.blueGrey
+                  : Colors.greenAccent,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Row(
@@ -494,125 +646,132 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
         children: [
           // Header de la card
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  // Icono
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppTheme.secondaryColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderColor),
+              // Icono (tamaño fijo)
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppTheme.secondaryColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: Icon(
+                  estadoId == _estadoActivoId
+                      ? Icons.play_circle_outline
+                      : estadoId == _estadoProgramadoId
+                      ? Icons.schedule_outlined
+                      : estadoId == _estadoFinalizadoId
+                      ? Icons.check_circle_outline
+                      : Icons.block,
+                  color: estadoColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // Nombre y estado - Expanded para ocupar espacio restante
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      temporada.nombre,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
                     ),
-                    child: Icon(
-                      estadoId == _estadoActivoId
-                          ? Icons.play_circle_outline
-                          : estadoId == _estadoProgramadoId
-                          ? Icons.schedule_outlined
-                          : estadoId == _estadoFinalizadoId
-                          ? Icons.check_circle_outline
-                          : Icons.block,
-                      color: estadoColor,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Nombre y estado
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.4,
-                        child: Text(
-                          temporada.nombre,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: estadoBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: estadoColor.withValues(alpha: 0.3),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: estadoBg,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: estadoColor.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (estadoIcon == 'play') ...[
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: estadoColor,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                            ] else if (estadoIcon == 'schedule') ...[
-                              Icon(
-                                Icons.schedule,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (estadoIcon == 'play') ...[
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
                                 color: estadoColor,
-                                size: 10,
-                              ),
-                              const SizedBox(width: 6),
-                            ] else if (estadoIcon == 'check') ...[
-                              Icon(Icons.check, color: estadoColor, size: 10),
-                              const SizedBox(width: 6),
-                            ] else if (estadoIcon == 'stop') ...[
-                              // ← AGREGAR ESTO
-                              Icon(Icons.block, color: estadoColor, size: 10),
-                              const SizedBox(width: 6),
-                            ],
-                            Text(
-                              _getEstadoLabel(estadoId),
-                              style: TextStyle(
-                                color: estadoColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                                shape: BoxShape.circle,
                               ),
                             ),
+                            const SizedBox(width: 6),
+                          ] else if (estadoIcon == 'schedule') ...[
+                            Icon(Icons.schedule, color: estadoColor, size: 10),
+                            const SizedBox(width: 6),
+                          ] else if (estadoIcon == 'check') ...[
+                            Icon(Icons.check, color: estadoColor, size: 10),
+                            const SizedBox(width: 6),
+                          ] else if (estadoIcon == 'stop') ...[
+                            Icon(Icons.block, color: estadoColor, size: 10),
+                            const SizedBox(width: 6),
                           ],
-                        ),
+                          Text(
+                            _getEstadoLabel(estadoId),
+                            style: TextStyle(
+                              color: estadoColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-              // Acciones
-              Row(
-                children: [
-                  _buildActionButton(
-                    icon: Icons.edit_outlined,
-                    onTap: () {
-                      // TODO: Navegar a editar temporada
-                      print('Editar: ${temporada.nombre}');
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _buildActionButton(
-                    icon: Icons.delete_outline,
-                    iconColor: const Color(0xFFEF4444),
-                    onTap: () {
-                      // TODO: Eliminar temporada
-                      print('Eliminar: ${temporada.nombre}');
-                    },
-                  ),
-                ],
+
+              // Botones de acción - Wrap para que se envuelvan automáticamente
+              Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    _buildActionButton(
+                      icon: Icons.edit_outlined,
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                AgregarTemporadaScreen(temporada: temporada),
+                          ),
+                        );
+                        if (result == true) {
+                          _cargarTemporadas();
+                        }
+                      },
+                    ),
+                    _buildActionButton(
+                      icon: Icons.delete_outline,
+                      iconColor: const Color(0xFFEF4444),
+                      onTap: () => _confirmarEliminacion(temporada),
+                    ),
+                    _buildActionButton(
+                      icon: Icons.swap_horiz,
+                      iconColor: Colors.orange,
+                      onTap: () => _mostrarMenuEstados(temporada),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -727,5 +886,86 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
         child: Icon(icon, color: iconColor ?? AppTheme.primaryColor, size: 16),
       ),
     );
+  }
+
+  Future<void> _confirmarEliminacion(TemporadaModel temporada) async {
+    // Primera confirmación
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar temporada'),
+        content: Text('¿Eliminar la temporada "${temporada.nombre}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    // Segunda confirmación (doble verificación)
+    final confirmarSegunda = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmación final'),
+        content: Text(
+          'Esta acción eliminará la temporada "${temporada.nombre}" '
+          'y TODAS sus categorías asociadas.\n\n'
+          '¿Estás ABSOLUTAMENTE seguro?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Sí, eliminar permanentemente'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmarSegunda != true) return;
+
+    // Ejecutar eliminación
+    await _eliminarTemporada(temporada.id, temporada.nombre);
+  }
+
+  Future<void> _eliminarTemporada(String id, String nombre) async {
+    setState(() => _isLoading = true);
+
+    try {
+      await _temporadaService.eliminar(id);
+      await _cargarTemporadas();
+      await _verificarExistenciaTemporada();
+
+      if (mounted) {
+        showSnackBar(
+          context,
+          'Temporada "$nombre" eliminada',
+          color: Colors.green,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(
+          context,
+          'Error al eliminar: ${e.toString()}',
+          color: Colors.red,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 }

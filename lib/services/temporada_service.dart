@@ -1,11 +1,9 @@
-// lib/services/temporada_service.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/temporadas_model.dart';
 
 class TemporadaService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  //static const String _estadoProgramadoId = '32dd8daf-4d3f-4a2d-9cda-98f13af88493';
   static const String _estadoActivoId = 'a4a0e12b-40b9-4c7a-979b-654e7807e012';
   static const String _estadoFinalizadoId =
       'af6a7363-5105-4c22-9b03-4f77be807264';
@@ -34,6 +32,18 @@ class TemporadaService {
         .single();
 
     return TemporadaModel.fromJson(response);
+  }
+
+  /// Verificar si una temporada es editable (estado PROGRAMADO)
+  Future<bool> esTemporadaEditable(String temporadaId) async {
+    final response = await _supabase
+        .from('temporadas')
+        .select('estado_id')
+        .eq('id', temporadaId)
+        .single();
+
+    final estadoId = response['estado_id'] as String;
+    return estadoId == _estadoProgramadoId; // Solo programado es editable
   }
 
   /// Activar una temporada (cambia estado a ACTIVO)
@@ -74,6 +84,11 @@ class TemporadaService {
         .eq('id', temporada.id);
   }
 
+  /// Eliminar una temporada
+  Future<void> eliminar(String id) async {
+    await _supabase.from('temporadas').delete().eq('id', id);
+  }
+
   /// Listar todas las temporadas
   Future<List<TemporadaModel>> listarTemporadas() async {
     final response = await _supabase
@@ -97,6 +112,26 @@ class TemporadaService {
     final response = await _supabase
         .from('temporadas')
         .select('''
+         id,
+         nombre,
+         descripcion,
+         fecha_inicio,
+         fecha_fin,
+         estado_id,
+         estados_temporada!inner(codigo)
+       ''')
+        .inFilter('estado_id', [_estadoActivoId, _estadoProgramadoId])
+        .order('nombre', ascending: true);
+    return response.map((json) => TemporadaModel.fromJson(json)).toList();
+  }
+
+  // lib/services/temporada_service.dart
+
+  /// Obtener temporadas PROGRAMADAS (para asignar a nuevas categorías)
+  Future<List<TemporadaModel>> obtenerTemporadasProgramadas() async {
+    final response = await _supabase
+        .from('temporadas')
+        .select('''
         id,
         nombre,
         descripcion,
@@ -105,10 +140,34 @@ class TemporadaService {
         estado_id,
         estados_temporada!inner(codigo)
       ''')
-        .inFilter('estado_id', [_estadoActivoId, _estadoProgramadoId])
+        .eq('estado_id', _estadoProgramadoId)
         .order('nombre', ascending: true);
 
     return response.map((json) => TemporadaModel.fromJson(json)).toList();
+  }
+
+  /// Obtener la primera temporada programada (error si no hay)
+  Future<TemporadaModel> obtenerPrimeraTemporadaProgramada() async {
+    final response = await _supabase
+        .from('temporadas')
+        .select('''
+        id,
+        nombre,
+        descripcion,
+        fecha_inicio,
+        fecha_fin,
+        estado_id,
+        estados_temporada!inner(codigo)
+      ''')
+        .eq('estado_id', _estadoProgramadoId)
+        .limit(1)
+        .maybeSingle();
+
+    if (response == null) {
+      throw Exception('No hay temporadas programadas disponibles.');
+    }
+
+    return TemporadaModel.fromJson(response);
   }
 
   /// Obtener temporada por ID
@@ -128,6 +187,21 @@ class TemporadaService {
         .maybeSingle();
 
     return response != null ? TemporadaModel.fromJson(response) : null;
+  }
+
+  /// Verificar si existe una temporada activa o programada
+  Future<bool> existeTemporadaActivaOProgramada({String? excludeId}) async {
+    var query = _supabase.from('temporadas').select('id').inFilter(
+      'estado_id',
+      [_estadoActivoId, _estadoProgramadoId],
+    );
+
+    if (excludeId != null) {
+      query = query.neq('id', excludeId);
+    }
+
+    final response = await query;
+    return response.isNotEmpty;
   }
 
   /// Verificar si existe una temporada activa

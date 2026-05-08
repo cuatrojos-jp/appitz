@@ -3,6 +3,8 @@ import '../theme/app_theme.dart';
 import '../services/categoria_service.dart';
 import 'categoria_form_screen.dart';
 import '../models/categorias_model.dart';
+import '../services/temporada_service.dart';
+import '../widgets/show_snackbar.dart';
 
 class CategoriasListScreen extends StatefulWidget {
   const CategoriasListScreen({super.key});
@@ -13,15 +15,51 @@ class CategoriasListScreen extends StatefulWidget {
 
 class _CategoriasListScreenState extends State<CategoriasListScreen> {
   final CategoriaService _categoriaService = CategoriaService();
+  final TemporadaService _temporadaService = TemporadaService();
 
   List<CategoriaModel> _categorias = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _existeTemporadaProgramada = false;
 
   @override
   void initState() {
     super.initState();
     _cargarCategorias();
+    _verificarTemporadaProgramada();
+  }
+
+  Future<void> _verificarTemporadaProgramada() async {
+    try {
+      await _temporadaService.obtenerPrimeraTemporadaProgramada();
+      setState(() {
+        _existeTemporadaProgramada = true;
+      });
+    } catch (e) {
+      setState(() {
+        _existeTemporadaProgramada = false;
+      });
+    }
+  }
+
+  void _navegarACrearCategoria() async {
+    if (!_existeTemporadaProgramada) {
+      showSnackBar(
+        context,
+        'No hay temporadas programadas. Crea una temporada primero.',
+        color: Colors.orange,
+      );
+      return;
+    }
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CategoriaFormScreen()),
+    );
+    if (result == true) {
+      _cargarCategorias();
+      _verificarTemporadaProgramada();
+    }
   }
 
   Future<void> _cargarCategorias() async {
@@ -73,16 +111,16 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
       await _cargarCategorias();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Categoría eliminada')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Categoría eliminada')));
       }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     }
   }
@@ -96,21 +134,10 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
         backgroundColor: AppTheme.backgroundColorAlt,
         elevation: 0,
         actions: [
-          
           // Botón de agregar del AppBar
           IconButton(
             icon: const Icon(Icons.add, color: AppTheme.primaryColor),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CategoriaFormScreen(),
-                ),
-              );
-              if (result == true) {
-                _cargarCategorias();
-              }
-            },
+            onPressed: _navegarACrearCategoria,
           ),
         ],
       ),
@@ -170,17 +197,7 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
           // Botón de agregar categoría dentro de la pantalla vacia
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CategoriaFormScreen(),
-                ),
-              );
-              if (result == true) {
-                _cargarCategorias();
-              }
-            },
+            onPressed: _navegarACrearCategoria,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
             ),
@@ -258,12 +275,23 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
                     icon: const Icon(Icons.edit_outlined, size: 20),
                     color: AppTheme.primaryColor,
                     onPressed: () async {
+                      final esEditable = await _temporadaService
+                          .esTemporadaEditable(categoria.temporadaId);
+
+                      if (!esEditable) {
+                        showSnackBar(
+                          context,
+                          'No se puede editar. La temporada ya está activa, finalizada o suspendida.',
+                          color: Colors.orange,
+                        );
+                        return;
+                      }
+                      
                       final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => CategoriaFormScreen(
-                            categoria: categoria,
-                          ),
+                          builder: (context) =>
+                              CategoriaFormScreen(categoria: categoria),
                         ),
                       );
                       if (result == true) {
