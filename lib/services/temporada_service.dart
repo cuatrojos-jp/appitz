@@ -285,4 +285,33 @@ class TemporadaService {
 
     return response?['estados_temporada']?['codigo'] as String?;
   }
+
+  Future<Map<String, dynamic>> obtenerContextoTemporada() async {
+    final activa = await obtenerTemporadaActiva();
+    if (activa != null) {
+      return {'temporada': activa, 'esActiva': true, 'esProgramada': false};
+    }
+
+    final response = await _supabase
+        .from('temporadas')
+        .select('''
+        id,
+        nombre,
+        descripcion,
+        fecha_inicio,
+        fecha_fin,
+        estado_id,
+        estados_temporada!inner(codigo)
+      ''')
+        .eq('estado_id', _estadoProgramadoId)
+        .limit(1)
+        .maybeSingle();
+
+    if (response == null) {
+      throw Exception('No hay temporada activa ni programada.');
+    }
+
+    final programada = TemporadaModel.fromJson(response);
+    return {'temporada': programada, 'esActiva': false, 'esProgramada': true};
+  }
 }

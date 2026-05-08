@@ -6,36 +6,29 @@ class EquipoService {
   final String table = 'equipos';
 
   // 🔹 CREATE
-  Future<void> crearEquipo(EquipoModel equipo) async {
-    try {
-      // Validar que los datos no estén vacíos
-      if (equipo.nombre.isEmpty) {
-        throw Exception('El nombre del equipo no puede estar vacío');
-      }
-      if (equipo.colorPrincipal.isEmpty || equipo.colorSecundario.isEmpty) {
-        throw Exception('Los colores son obligatorios');
-      }
-
-      final data = await _client
-          .from(table)
-          .insert(equipo.toJsonSinId())
-          .select()
-          .single();
-
-      print('✅ INSERT EQUIPO: $data');
-    } catch (e) {
-      print('🔥 Error al crear equipo: $e');
-      rethrow;
-    }
+  Future<EquipoModel> crearEquipo(EquipoModel equipo) async {
+    final response = await _client
+        .from('equipos')
+        .insert(equipo.toJson())
+        .select()
+        .single();
+    return EquipoModel.fromJson(response);
   }
 
   // 🔹 READ todos
   Future<List<EquipoModel>> obtenerEquipos() async {
-    final response = await _client.from(table).select();
+    try {
+      final response = await _client.from('equipos').select();
+      print('Equipos obtenidos: ${response.length}'); // ← Ver cuántos vienen
+      print('Datos: $response'); // ← Ver los datos crudos
 
-    return (response as List)
-        .map((json) => EquipoModel.fromJson(json))
-        .toList();
+      return (response as List)
+          .map((json) => EquipoModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error en obtenerEquipos: $e');
+      return [];
+    }
   }
 
   // 🔹 READ por ID
@@ -52,8 +45,14 @@ class EquipoService {
   }
 
   // 🔹 UPDATE
-  Future<void> actualizarEquipo(String id, EquipoModel equipo) async {
-    await _client.from(table).update(equipo.toJsonSinId()).eq('id', id);
+  Future<EquipoModel> actualizarEquipo(EquipoModel equipo) async {
+    final response = await _client
+        .from('equipos')
+        .update(equipo.toUpdateJson())
+        .eq('id', equipo.id)
+        .select()
+        .single();
+    return EquipoModel.fromJson(response);
   }
 
   // 🔹 DELETE

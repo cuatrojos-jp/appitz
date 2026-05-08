@@ -31,14 +31,16 @@ class _CamposListScreenState extends State<CamposListScreen> {
     });
   }
 
- Future<void> _toggleDisponible(
-    CampoFutbolModel campo, bool nuevoEstado) async {
-  await _service.cambiarDisponibilidad(campo.id!, nuevoEstado);
+  Future<void> _toggleDisponible(
+    CampoFutbolModel campo,
+    bool nuevoEstado,
+  ) async {
+    await _service.cambiarDisponibilidad(campo.id!, nuevoEstado);
 
-  setState(() {
-    campo.disponible = nuevoEstado;
-  });
-}
+    setState(() {
+      campo.disponible = nuevoEstado;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,50 +66,45 @@ class _CamposListScreenState extends State<CamposListScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Container(
-                width: 520, // 🔥 MISMO ANCHO QUE NUEVO CAMPO
-                margin: const EdgeInsets.all(20),
-                child: FutureBuilder<List<CampoFutbolModel>>(
-                  future: _camposFuture,
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(
-                        child: CircularProgressIndicator(color: neon),
-                      );
-                    }
-
-                    final campos = snapshot.data!;
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 🔝 HEADER
-                        const Text(
-                          'Listado de Campos',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'campos: nombre, direccion, disponible, foto url',
-                          style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        ...campos.map(_buildCard).toList(),
-                        const SizedBox(height: 80),
-                      ],
+          child: SingleChildScrollView(
+            child: Container(
+              width: double.infinity,
+              margin: const EdgeInsets.all(20),
+              child: FutureBuilder<List<CampoFutbolModel>>(
+                future: _camposFuture,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: neon),
                     );
-                  },
-                ),
+                  }
+
+                  final campos = snapshot.data!;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 🔝 HEADER
+                      const Text(
+                        'Listado de Campos',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'campos: nombre, direccion, disponible, foto url',
+                        style: TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                      const SizedBox(height: 24),
+
+                      ...campos.map(_buildCard).toList(),
+                      const SizedBox(height: 80),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -161,10 +158,7 @@ class _CamposListScreenState extends State<CamposListScreen> {
                 const SizedBox(height: 6),
                 Text(
                   'Dirección: ${campo.direccion}',
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -181,9 +175,9 @@ class _CamposListScreenState extends State<CamposListScreen> {
                         color: campo.disponible ? neon : Colors.white38,
                         fontSize: 12,
                       ),
-                    )
+                    ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -196,10 +190,7 @@ class _CamposListScreenState extends State<CamposListScreen> {
     return const Center(
       child: Text(
         'Sin imagen',
-        style: TextStyle(
-          color: Colors.white24,
-          fontSize: 13,
-        ),
+        style: TextStyle(color: Colors.white24, fontSize: 13),
       ),
     );
   }

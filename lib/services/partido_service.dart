@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/partido_model.dart';
+import '../models/campos_model.dart';
+import '../models/equipos_model.dart';
 import 'partido_validator.dart';
 
 class PartidoService {
@@ -8,7 +10,7 @@ class PartidoService {
 
   // UUID del estado "programado" para nuevos partidos
   static const String _estadoProgramadoId =
-      '32dd8daf-4d3f-4a2d-9cda-98f13af88493';
+      '75e0fced-c2d6-4896-9356-2b27a0bf3c78';
 
   /// Crear un nuevo partido (con validaciones)
   Future<PartidoModel> crearPartido({
@@ -51,13 +53,13 @@ class PartidoService {
     final response = await _supabase
         .from('partidos')
         .select('''
-          *,
-          equipos!partidos_equipo_local_id_fkey(id, nombre),
-          equipos!partidos_equipo_visitante_id_fkey(id, nombre),
-          campos(id, nombre),
-          categorias(id, nombre),
-          estados_partido(id, codigo)
-        ''')
+        *,
+        equipos_local:equipos!partidos_equipo_local_id_fkey(id, nombre),
+        equipos_visitante:equipos!partidos_equipo_visitante_id_fkey(id, nombre),
+        campos(id, nombre),
+        categorias(id, nombre),
+        estados_partido(id, codigo)
+      ''')
         .order('fecha_hora', ascending: true);
 
     return response.map((json) => PartidoModel.fromJson(json)).toList();
@@ -139,12 +141,14 @@ class PartidoService {
 
     if (campoId != null) updates['campo_id'] = campoId;
     if (equipoLocalId != null) updates['equipo_local_id'] = equipoLocalId;
-    if (equipoVisitanteId != null)
+    if (equipoVisitanteId != null) {
       updates['equipo_visitante_id'] = equipoVisitanteId;
+    }
     if (fechaHora != null) updates['fecha_hora'] = fechaHora.toIso8601String();
     if (categoriaId != null) updates['categoria_id'] = categoriaId;
-    if (observaciones != null)
+    if (observaciones != null) {
       updates['observaciones'] = observaciones.isEmpty ? null : observaciones;
+    }
     if (estadoId != null) updates['estado_id'] = estadoId;
 
     if (updates.isEmpty) {
@@ -181,5 +185,80 @@ class PartidoService {
         .single();
 
     return PartidoModel.fromJson(response);
+  }
+
+  Future<List<CampoFutbolModel>> obtenerTodos() async {
+    final response = await _supabase
+        .from('campos')
+        .select('*')
+        .eq('disponible', true)
+        .order('nombre', ascending: true);
+
+    return response.map((json) => CampoFutbolModel.fromJson(json)).toList();
+  }
+
+  Future<List<CampoFutbolModel>> obtenerCompatibleCon(String cantidad) async {
+    var query = _supabase.from('campos').select('*').eq('disponible', true);
+
+    //if (cantidad != '11v11') {
+    query = query.eq('cantidad', cantidad);
+    //}
+
+    final response = await query.order('nombre', ascending: true);
+    return response.map((json) => CampoFutbolModel.fromJson(json)).toList();
+  }
+
+  Future<List<EquipoModel>> obtenerEquiposCompatibles(String cantidad) async {
+    var query = _supabase.from('equipos').select('*');
+
+    //if (cantidad != '11v11') {
+    query = query.eq('cantidad', cantidad);
+    //}
+
+    final response = await query.order('nombre', ascending: true);
+    return response.map((json) => EquipoModel.fromJson(json)).toList();
+  }
+
+  // lib/services/equipo_service.dart
+
+  /// Obtener equipos con sus categorías en una temporada específica
+  Future<List<Map<String, dynamic>>> obtenerEquiposConCategoriaEnTemporada(
+    String temporadaId,
+  ) async {
+    // 1. Obtener todas las categorías de la temporada
+    final categorias = await _supabase
+        .from('categorias')
+        .select('id')
+        .eq('temporada_id', temporadaId);
+
+    final categoriaIds = categorias.map((c) => c['id'] as String).toList();
+
+    if (categoriaIds.isEmpty) return [];
+
+    // 2. Obtener relaciones equipo-categoría
+    final relaciones = await _supabase
+        .from('equipos_categorias')
+        .select('equipo_id, categoria_id')
+        .inFilter('categoria_id', categoriaIds)
+        .eq('activo', true);
+
+    // 3. Crear mapa equipo_id -> lista de categorías
+    final Map<String, List<String>> categoriasPorEquipo = {};
+    for (var rel in relaciones) {
+      final equipoId = rel['equipo_id'] as String;
+      final categoriaId = rel['categoria_id'] as String;
+      categoriasPorEquipo.putIfAbsent(equipoId, () => []).add(categoriaId);
+    }
+
+    // 4. Obtener todos los equipos
+    final todosEquipos = await obtenerTodos();
+
+    // 5. Combinar
+    return todosEquipos.map((equipo) {
+      return {
+        'equipo': equipo,
+        'categoria_ids': categoriasPorEquipo[equipo.id] ?? [],
+      };
+    }).toList();
   }
 }

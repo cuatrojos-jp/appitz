@@ -1,4 +1,3 @@
-// lib/models/temporada_model.dart
 class TemporadaModel {
   final String id;
   final String nombre;

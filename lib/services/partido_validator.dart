@@ -67,8 +67,8 @@ class PartidoValidator {
     if (equipoLocal == null) throw Exception('Equipo local no encontrado.');
     if (equipoVisitante == null) throw Exception('Equipo visitante no encontrado.');
     
-    final esCompatibleLocal = _esCompatible(campo.cantidad, equipoLocal.cantidad!);
-    final esCompatibleVisitante = _esCompatible(campo.cantidad, equipoVisitante.cantidad!);
+    final esCompatibleLocal = _esCompatible(campo.cantidad, equipoLocal.cantidad as String);
+    final esCompatibleVisitante = _esCompatible(campo.cantidad, equipoVisitante.cantidad as String);
     
     if (!esCompatibleLocal) {
       throw Exception('El equipo local (${equipoLocal.cantidad}) no es compatible con el campo (${campo.cantidad}).');

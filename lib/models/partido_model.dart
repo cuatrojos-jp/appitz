@@ -1,3 +1,4 @@
+// lib/models/partido_model.dart
 class PartidoModel {
   final String id;
   final String? categoriaId;
@@ -39,15 +40,13 @@ class PartidoModel {
       categoriaId: json['categoria_id'] as String?,
       categoriaNombre: json['categorias']?['nombre'] as String? ?? 'Amistoso',
       equipoLocalId: json['equipo_local_id'] as String,
-      equipoLocalNombre:
-          json['equipos_partidos_equipo_local_id_fkey']['nombre'] as String,
+      equipoLocalNombre: json['equipos_local']?['nombre'] as String? ?? 'Desconocido',
       equipoVisitanteId: json['equipo_visitante_id'] as String,
-      equipoVisitanteNombre:
-          json['equipos_partidos_equipo_visitante_id_fkey']['nombre'] as String,
+      equipoVisitanteNombre: json['equipos_visitante']?['nombre'] as String? ?? 'Desconocido',
       campoId: json['campo_id'] as String,
-      campoNombre: json['campos']['nombre'] as String,
+      campoNombre: json['campos']?['nombre'] as String? ?? 'Sin campo',
       estadoId: json['estado_id'] as String,
-      estadoCodigo: json['estados_partido']['codigo'] as String,
+      estadoCodigo: json['estados_partido']?['codigo'] as String? ?? 'programado',
       fechaHora: DateTime.parse(json['fecha_hora'] as String),
       observaciones: json['observaciones'] as String?,
       creadoEn: DateTime.parse(json['creado_en'] as String),

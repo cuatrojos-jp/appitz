@@ -21,6 +21,7 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
 
   Color colorPrimario = const Color(0xFF6EE7B7);
   Color colorSecundario = const Color(0xFF1A1A1E);
+  String cantidad = "5v5"; // Modalidad de campo (5, 7, 11)
 
   bool get editando => widget.equipo != null;
 
@@ -36,56 +37,37 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
     if (widget.equipo != null) {
       colorPrimario = _hexToColor(widget.equipo!.colorPrincipal);
       colorSecundario = _hexToColor(widget.equipo!.colorSecundario);
+      cantidad = widget.equipo!.cantidad;
     }
   }
 
   Future<void> guardarEquipo() async {
     if (!_formKey.currentState!.validate()) return;
 
-    try {
+    if (editando) {
+      // EDITAR - usar constructor normal con id
       final equipo = EquipoModel(
+        id: widget.equipo!.id,
         nombre: nombreController.text.trim(),
         escudoUrl: logoController.text.trim(),
         colorPrincipal: _colorToHex(colorPrimario),
         colorSecundario: _colorToHex(colorSecundario),
+        cantidad: cantidad,
       );
-
-      if (editando) {
-        await _service.actualizarEquipo(widget.equipo!.id!, equipo);
-      } else {
-        await _service.crearEquipo(equipo);
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              editando 
-                ? '✅ Equipo actualizado con éxito' 
-                : '✅ Equipo creado con éxito',
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        // Limpiar formulario para crear otro equipo
-        nombreController.clear();
-        logoController.clear();
-        colorPrimario = const Color(0xFF6EE7B7);
-        colorSecundario = const Color(0xFF1A1A1E);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-      print('🔥 Error al guardar equipo: $e');
+      await _service.actualizarEquipo(equipo);
+    } else {
+      // CREAR - usar constructor especial para nuevos
+      final equipo = EquipoModel.nuevo(
+        nombre: nombreController.text.trim(),
+        escudoUrl: logoController.text.trim(),
+        colorPrincipal: _colorToHex(colorPrimario),
+        colorSecundario: _colorToHex(colorSecundario),
+        cantidad: cantidad,
+      );
+      await _service.crearEquipo(equipo);
     }
+
+    if (mounted) Navigator.pop(context, true);
   }
 
   Color _hexToColor(String hex) {
@@ -128,127 +110,135 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-  backgroundColor: Colors.black,
-  body: Center(
-    child: Container(
-      width: 550,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F1115),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white54),
-                        onPressed: () => Navigator.pop(context),
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Container(
+          width: 550,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F1115),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white54),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  Center(
+                    child: Text(
+                      editando ? 'Editar Equipo' : 'Crear Equipo',
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
-                    const Center(
-                      child: Text(
-                        'Crear Equipo',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
+                  ),
+                  const SizedBox(height: 30),
 
-                    const Text(
-                      "Nombre del Equipo *",
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: nombreController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration("Ej: Los Halcones"),
-                      validator: (v) => v!.isEmpty ? 'Ingresa el nombre' : null,
-                    ),
+                  const Text(
+                    "Nombre del Equipo *",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: nombreController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _inputDecoration("Ej: Los Halcones"),
+                    validator: (v) => v!.isEmpty ? 'Ingresa el nombre' : null,
+                  ),
 
-                    const SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _colorPickerBox(
-                            "Color Principal",
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _colorPickerBox(
+                          "Color Principal",
+                          colorPrimario,
+                          () => _abrirPicker(
                             colorPrimario,
-                            () => _abrirPicker(
-                              colorPrimario,
-                              (c) => setState(() => colorPrimario = c),
-                            ),
+                            (c) => setState(() => colorPrimario = c),
                           ),
                         ),
-                        const SizedBox(width: 20),
-                        Expanded(
-                          child: _colorPickerBox(
-                            "Color Secundario",
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: _colorPickerBox(
+                          "Color Secundario",
+                          colorSecundario,
+                          () => _abrirPicker(
                             colorSecundario,
-                            () => _abrirPicker(
-                              colorSecundario,
-                              (c) => setState(() => colorSecundario = c),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    const Text(
-                      "URL del Logo (opcional)",
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: logoController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration(
-                        "https://ejemplo.com/logo.png",
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton(
-                        onPressed: guardarEquipo,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF34D399),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 16,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          "Guardar Equipo",
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
+                            (c) => setState(() => colorSecundario = c),
                           ),
                         ),
                       ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  const Text(
+                    "Modalidad de Campo *",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: cantidad,
+                    style: const TextStyle(color: Colors.white),
+                    dropdownColor: const Color(0xFF1A1A1E),
+                    decoration: _inputDecoration("Selecciona la modalidad"),
+                    items: const [
+                      DropdownMenuItem(value: "5v5", child: Text("5v5")),
+                      DropdownMenuItem(value: "6v6", child: Text("6v6")),
+                      DropdownMenuItem(value: "7v7", child: Text("7v7")),
+                      DropdownMenuItem(value: "11v11", child: Text("11v11")),
+                    ],
+                    onChanged: (value) => setState(() => cantidad = value!),
+                    validator: (v) =>
+                        v == null ? 'Selecciona una modalidad' : null,
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      onPressed: guardarEquipo,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF34D399),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        editando ? "Actualizar Equipo" : "Guardar Equipo",
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
   }
 
   Widget _colorPickerBox(String label, Color color, VoidCallback onTap) {

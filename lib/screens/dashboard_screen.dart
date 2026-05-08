@@ -6,10 +6,11 @@ import '../widgets/dashboard_card.dart';
 import '../widgets/dashboard_header.dart';
 import 'login_screen.dart';
 import 'lista_usuarios.dart';
-import 'nuevo_equipo_screen.dart';
 import 'temporada_screen.dart';
 import 'categorias_list_screen.dart';
 import 'campos_list_screen.dart';
+import 'partidos_list_screen.dart';
+import 'equipo_list_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String rolId;
@@ -63,7 +64,7 @@ class DashboardScreen extends StatelessWidget {
                     icon: Icons.shield,
                     color: Colors.blue,
                     onTap: () =>
-                        _navigateTo(context, const NuevoEquipoScreen()),
+                        _navigateTo(context, const EquipoListScreen()),
                   ),
                   DashboardCard(
                     title: "Jugadores",
@@ -76,13 +77,13 @@ class DashboardScreen extends StatelessWidget {
                     title: "Campos",
                     icon: Icons.sports_soccer,
                     color: Colors.orange,
-                    onTap: () =>
-                        _navigateTo(context, const CamposListScreen()),
+                    onTap: () => _navigateTo(context, const CamposListScreen()),
                   ),
                   DashboardCard(
                     title: "Partidos",
                     icon: Icons.calendar_today,
                     color: Colors.purple,
+                    onTap: () => _navigateTo(context, PartidosListScreen()),
                   ),
                   DashboardCard(
                     title: "Estadísticas",
