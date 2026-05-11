@@ -22,6 +22,7 @@ class PartidoService {
     String? observaciones,
   }) async {
     // Validar antes de crear
+    _validator.validarLongitudObservaciones(observaciones);
     await _validator.validarCreacionPartido(
       campoId: campoId,
       equipoLocalId: equipoLocalId,

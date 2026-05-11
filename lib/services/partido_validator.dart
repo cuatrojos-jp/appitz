@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/temporadas_model.dart';
 import 'temporada_service.dart';
@@ -261,6 +263,7 @@ class PartidoValidator {
     required String equipoVisitanteId,
     required DateTime fechaHora,
     String? categoriaId,
+    String? observaciones,
   }) async {
     // 1. Obtener contexto de temporada
     final contexto = await obtenerContextoTemporada();
@@ -301,6 +304,19 @@ class PartidoValidator {
     } else if (esProgramada) {
       // Temporada programada: partidos amistosos (categoría opcional)
       // No se validan categorías
+    }
+    validarLongitudObservaciones(observaciones);
+  }
+
+  // Validación de caracteres
+  static const int maxObservacionesLength = 80;
+  void validarLongitudObservaciones(String? observaciones) {
+    if (observaciones == null || observaciones.isEmpty) {
+      return;
+    } else if (observaciones.length > maxObservacionesLength) {
+      throw Exception(
+        'Las observaciones no pueden exceder los $maxObservacionesLength caracteres. '
+      );
     }
   }
 }

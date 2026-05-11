@@ -83,11 +83,16 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
   }
 
   Future<void> _eliminarCategoria(String id, String nombre) async {
+    // 1. Mostrar diálogo de confirmación
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Eliminar categoría'),
-        content: Text('¿Eliminar la categoría "$nombre"?'),
+        content: Text(
+          '¿Estás seguro de eliminar la categoría "$nombre"?\n\n'
+          '⚠️ Solo se pueden eliminar categorías de temporadas PROGRAMADAS '
+          'que no tengan equipos asignados.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -104,24 +109,50 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
 
     if (confirm != true) return;
 
-    setState(() => _isLoading = true);
+    // 2. Mostrar indicador de carga
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
+      // 3. Intentar eliminar (el service validará internamente)
       await _categoriaService.eliminar(id);
+
+      // 4. Recargar la lista
       await _cargarCategorias();
 
       if (mounted) {
-        ScaffoldMessenger.of(
+        showSnackBar(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Categoría eliminada')));
+          'Categoría "$nombre" eliminada correctamente',
+          color: Colors.green,
+        );
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      // 5. Mostrar el error específico de validación
       if (mounted) {
-        ScaffoldMessenger.of(
+        showSnackBar(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+          'No se pudo eliminar: ${e.toString()}',
+          color: Colors.red,
+          duration: const Duration(seconds: 5), // Más tiempo para leer el error
+        );
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<bool> _puedeEliminarCategoria(String categoriaId) async {
+    try {
+      await _categoriaService.validarEliminacionCategoria(categoriaId);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -286,7 +317,7 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
                         );
                         return;
                       }
-                      
+
                       final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -299,10 +330,21 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
                       }
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                    color: Colors.redAccent,
-                    onPressed: () => _eliminarCategoria(id, nombre),
+                  FutureBuilder<bool>(
+                    future: _puedeEliminarCategoria(categoria.id),
+                    builder: (context, snapshot) {
+                      final puedeEliminar = snapshot.data ?? false;
+                      return IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 20),
+                        color: puedeEliminar ? Colors.redAccent : Colors.grey,
+                        onPressed: puedeEliminar
+                            ? () => _eliminarCategoria(
+                                categoria.id,
+                                categoria.nombre,
+                              )
+                            : null, // Deshabilitado
+                      );
+                    },
                   ),
                 ],
               ),

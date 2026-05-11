@@ -59,4 +59,87 @@ class EquipoService {
   Future<void> eliminarEquipo(String id) async {
     await _client.from(table).delete().eq('id', id);
   }
+
+  Future<void> deshabilitarEquipo({
+    required String equipoId,
+    required String razon,
+  }) async {
+    try {
+      await _client
+          .from(table)
+          .update({'habilitado': false, 'habilitado_descripcion': razon.trim()})
+          .eq('id', equipoId);
+    } catch (e) {
+      print('Error deshabilitando equipo: $e');
+      rethrow;
+    }
+  }
+
+  /// Habilitar un equipo (limpia la descripción automáticamente)
+  Future<void> habilitarEquipo(String equipoId) async {
+    await _client
+        .from(table)
+        .update({
+          'habilitado': true,
+          'habilitado_descripcion': null, // ← Limpia la descripción
+        })
+        .eq('id', equipoId);
+  }
+
+  /// Alternar el estado de un equipo (si no usas diálogos separados)
+  /// Este método decide automáticamente si habilitar o deshabilitar
+  Future<void> toggleHabilitado({
+    required String equipoId,
+    required bool estadoActual,
+    String? razon, // Requerido solo si estadoActual == true (para deshabilitar)
+  }) async {
+    if (estadoActual == true) {
+      // Va a DESHABILITAR (requiere razón)
+      if (razon == null || razon.trim().isEmpty) {
+        throw Exception(
+          'Debes proporcionar una razón para deshabilitar el equipo.',
+        );
+      }
+      await deshabilitarEquipo(equipoId: equipoId, razon: razon);
+    } else {
+      // Va a HABILITAR (no requiere razón)
+      await habilitarEquipo(equipoId);
+    }
+  }
+
+  /// Obtener solo equipos habilitados (útil para filtros en otros módulos)
+  Future<List<EquipoModel>> obtenerEquiposHabilitados() async {
+    try {
+      final response = await _client
+          .from(table)
+          .select()
+          .eq('habilitado', true)
+          .order('nombre');
+
+      return (response as List)
+          .map((json) => EquipoModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error en obtenerEquiposHabilitados: $e');
+      return [];
+    }
+  }
+
+  /// Obtener solo equipos deshabilitados
+  Future<List<EquipoModel>> obtenerEquiposDeshabilitados() async {
+    try {
+      final response = await _client
+          .from(table)
+          .select()
+          .eq('habilitado', false)
+          .order('nombre');
+
+      return (response as List)
+          .map((json) => EquipoModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error en obtenerEquiposDeshabilitados: $e');
+      return [];
+    }
+  }
 }

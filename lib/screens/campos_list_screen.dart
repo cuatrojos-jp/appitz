@@ -166,7 +166,7 @@ class _CamposListScreenState extends State<CamposListScreen> {
                     Switch(
                       value: campo.disponible,
                       onChanged: (v) => _toggleDisponible(campo, v),
-                      activeColor: neon,
+                      activeThumbColor: neon,
                     ),
                     const SizedBox(width: 6),
                     Text(

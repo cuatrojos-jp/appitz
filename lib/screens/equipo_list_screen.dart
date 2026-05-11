@@ -1,7 +1,9 @@
+// lib/screens/equipo_list_screen.dart
 import 'package:flutter/material.dart';
 import '../models/equipos_model.dart';
 import '../services/equipo_service.dart';
 import 'nuevo_equipo_screen.dart';
+import '../widgets/confirmacion_dialog.dart';
 
 class EquipoListScreen extends StatefulWidget {
   const EquipoListScreen({super.key});
@@ -10,7 +12,10 @@ class EquipoListScreen extends StatefulWidget {
   State<EquipoListScreen> createState() => _EquipoListScreenState();
 }
 
-class _EquipoListScreenState extends State<EquipoListScreen> {
+class _EquipoListScreenState extends State<EquipoListScreen>
+    with AutomaticKeepAliveClientMixin {
+  // ← Mixin para mantener estado vivo
+
   final EquipoService _service = EquipoService();
   late Future<List<EquipoModel>> _equiposFuture;
 
@@ -18,6 +23,11 @@ class _EquipoListScreenState extends State<EquipoListScreen> {
   static const Color backgroundColor = Color(0xFF1a1a1a);
   static const Color cardColor = Color(0xFF1e1e1e);
   static const Color neon = Color(0xFF00e676);
+  static const Color disabledBadgeColor = Color(0xFF6F2A2A);
+  static const Color enabledBadgeColor = Color(0xFF2A6F5C);
+
+  @override
+  bool get wantKeepAlive => true; // ← Para AutomaticKeepAliveClientMixin
 
   @override
   void initState() {
@@ -26,9 +36,13 @@ class _EquipoListScreenState extends State<EquipoListScreen> {
   }
 
   void _recargar() {
-    setState(() {
-      _equiposFuture = _service.obtenerEquipos();
-    });
+    if (mounted) {
+      print('🔵 _recargar llamado, mounted: ${mounted}');
+      setState(() {
+        // ✅ Crear NUEVO Future para forzar reconstrucción limpia
+        _equiposFuture = _service.obtenerEquipos();
+      });
+    }
   }
 
   Future<void> _editarEquipo(EquipoModel equipo) async {
@@ -36,7 +50,86 @@ class _EquipoListScreenState extends State<EquipoListScreen> {
       context,
       MaterialPageRoute(builder: (_) => NuevoEquipoScreen(equipo: equipo)),
     );
-    if (resultado == true) _recargar();
+    if (resultado == true && mounted) _recargar();
+  }
+
+  // ============================================================
+  // MÉTODOS PARA HABILITAR/DESHABILITAR
+  // ============================================================
+
+  Future<void> _deshabilitarEquipo(EquipoModel equipo) async {
+    final resultado = await mostrarDialogoConfirmacion(
+      context: context,
+      titulo: 'Deshabilitar equipo',
+      contenido:
+          '¿Estás seguro de deshabilitar a "${equipo.nombre}"?\n\n'
+          'Un equipo deshabilitado no podrá ser seleccionado en nuevos partidos.',
+      requiereRazon: true,
+      hintRazon: 'Ej: Equipo suspendido por sanción, falta de jugadores, etc.',
+      botonConfirmacion: 'Deshabilitar',
+      colorConfirmacion: Colors.redAccent,
+    );
+
+    if (resultado == null || resultado['confirmado'] != true) return;
+
+    final razon = resultado['razon'] as String;
+
+    try {
+      await _service.deshabilitarEquipo(equipoId: equipo.id, razon: razon);
+
+      if (mounted) {
+        _recargar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ Equipo deshabilitado'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _habilitarEquipo(EquipoModel equipo) async {
+    final resultado = await mostrarDialogoConfirmacion(
+      context: context,
+      titulo: 'Habilitar equipo',
+      contenido:
+          '¿Estás seguro de habilitar nuevamente a "${equipo.nombre}"?\n\n'
+          'El equipo volverá a estar disponible para seleccionar en partidos.',
+      requiereRazon: false,
+      botonConfirmacion: 'Habilitar',
+      colorConfirmacion: Colors.green,
+    );
+
+    if (resultado == null || resultado['confirmado'] != true) return;
+
+    try {
+      await _service.habilitarEquipo(equipo.id);
+
+      if (mounted) {
+        _recargar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Equipo habilitado'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _eliminarEquipo(EquipoModel equipo) async {
@@ -71,27 +164,29 @@ class _EquipoListScreenState extends State<EquipoListScreen> {
       ),
     );
 
-    if (confirma == true) {
-      try {
-        await _service.eliminarEquipo(equipo.id);
+    if (confirma != true) return;
+
+    try {
+      await _service.eliminarEquipo(equipo.id);
+      if (mounted) {
         _recargar();
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('✅ Equipo eliminado')));
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('❌ Error: $e')));
-        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('✅ Equipo eliminado')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('❌ Error: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // ← Importante para AutomaticKeepAliveClientMixin
+
     return Scaffold(
       backgroundColor: backgroundColor,
       floatingActionButton: FloatingActionButton(
@@ -102,7 +197,7 @@ class _EquipoListScreenState extends State<EquipoListScreen> {
             context,
             MaterialPageRoute(builder: (_) => const NuevoEquipoScreen()),
           );
-          if (resultado == true) _recargar();
+          if (resultado == true && mounted) _recargar();
         },
       ),
       body: Container(
@@ -182,7 +277,15 @@ class _EquipoListScreenState extends State<EquipoListScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      ...equipos.map(_buildCard).toList(),
+                      // ✅ LISTVIEW.BUILDER en lugar de Column + map
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: equipos.length,
+                        itemBuilder: (context, index) =>
+                            _buildCard(equipos[index]),
+                      ),
+
                       const SizedBox(height: 80),
                     ],
                   );
@@ -195,54 +298,85 @@ class _EquipoListScreenState extends State<EquipoListScreen> {
     );
   }
 
-  // 🎴 CARD DEL EQUIPO
+  // 🎴 CARD DEL EQUIPO (con Key única)
   Widget _buildCard(EquipoModel equipo) {
     Color colorPrimario = _hexToColor(equipo.colorPrincipal);
     Color colorSecundario = _hexToColor(equipo.colorSecundario);
 
+    final bool estaDeshabilitado = !equipo.habilitado;
+
     return Container(
+      key: ValueKey(
+        equipo.id,
+      ), // ✅ CLAVE ÚNICA para evitar errores de reutilización
       margin: const EdgeInsets.only(bottom: 22),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(
+          color: estaDeshabilitado
+              ? Colors.redAccent.withOpacity(0.3)
+              : Colors.white12,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🎨 COLORES DEL EQUIPO (PREVIEW)
-          Container(
-            height: 80,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              gradient: LinearGradient(
-                colors: [colorPrimario, colorSecundario],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: equipo.escudoUrl != null && equipo.escudoUrl!.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12),
-                    ),
-                    child: Image.network(
-                      equipo.escudoUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.expand(
+          // 🎨 COLORES DEL EQUIPO (PREVIEW) con overlay si está deshabilitado
+          Stack(
+            children: [
+              Container(
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                  gradient: LinearGradient(
+                    colors: [colorPrimario, colorSecundario],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: equipo.escudoUrl != null && equipo.escudoUrl!.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                        child: Image.network(
+                          equipo.escudoUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox.expand(
+                            child: Icon(
+                              Icons.shield,
+                              color: Colors.white30,
+                              size: 40,
+                            ),
+                          ),
+                        ),
+                      )
+                    : const SizedBox.expand(
                         child: Icon(
                           Icons.shield,
                           color: Colors.white30,
                           size: 40,
                         ),
                       ),
+              ),
+              // Overlay si está deshabilitado
+              if (estaDeshabilitado)
+                Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
                     ),
-                  )
-                : const SizedBox.expand(
-                    child: Icon(Icons.shield, color: Colors.white30, size: 40),
+                    color: Colors.black.withOpacity(0.6),
                   ),
+                  child: const Center(
+                    child: Icon(Icons.block, color: Colors.redAccent, size: 32),
+                  ),
+                ),
+            ],
           ),
 
           // 📝 INFO DEL EQUIPO
@@ -251,19 +385,86 @@ class _EquipoListScreenState extends State<EquipoListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  equipo.nombre,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                // Nombre y badge de estado
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        equipo.nombre,
+                        style: TextStyle(
+                          color: estaDeshabilitado
+                              ? Colors.white54
+                              : Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          decoration: estaDeshabilitado
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                    ),
+                    // Badge de estado
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: estaDeshabilitado
+                            ? disabledBadgeColor
+                            : enabledBadgeColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        estaDeshabilitado ? 'Deshabilitado' : 'Activo',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Modalidad: ${equipo.cantidad}',
                   style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
+                const SizedBox(height: 6),
+                // Mostrar razón si está deshabilitado
+                if (estaDeshabilitado && equipo.habilitadoDescripcion != null)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(top: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.redAccent.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          color: Colors.redAccent,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Razón: ${equipo.habilitadoDescripcion}',
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -289,9 +490,41 @@ class _EquipoListScreenState extends State<EquipoListScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
+
                 // 🔘 BOTONES DE ACCIÓN
                 Row(
                   children: [
+                    // TOGGLE HABILITAR/DESHABILITAR
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: estaDeshabilitado
+                              ? enabledBadgeColor // Verde para habilitar
+                              : disabledBadgeColor, // Rojo para deshabilitar
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: Icon(
+                          estaDeshabilitado ? Icons.play_arrow : Icons.block,
+                          size: 16,
+                        ),
+                        label: Text(
+                          estaDeshabilitado ? 'Habilitar' : 'Deshabilitar',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        onPressed: () {
+                          if (estaDeshabilitado) {
+                            _habilitarEquipo(equipo);
+                          } else {
+                            _deshabilitarEquipo(equipo);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     // EDITAR
                     Expanded(
                       child: ElevatedButton.icon(
