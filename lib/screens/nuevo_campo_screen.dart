@@ -29,6 +29,20 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
   bool _disponible = true;
   bool _isLoading = false;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  
+  // Para validación de nombre duplicado
+  List<CampoFutbolModel> _camposExistentes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarCamposExistentes();
+  }
+
+  Future<void> _cargarCamposExistentes() async {
+    _camposExistentes = await _service.obtenerCampos();
+    setState(() {});
+  }
 
   @override
   void dispose() {
@@ -36,6 +50,31 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
     _direccionController.dispose();
     _fotoUrlController.dispose();
     super.dispose();
+  }
+
+  // 🔍 VALIDACIÓN DE NOMBRE DUPLICADO (sin distinguir mayúsculas/minúsculas)
+  String? _validarNombre(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'El nombre es requerido';
+    }
+    if (value.length < 3) {
+      return 'Mínimo 3 caracteres';
+    }
+    if (value.length > 30) {
+      return 'Máximo 30 caracteres';
+    }
+    
+    // 🔥 VERIFICAR SI YA EXISTE UN CAMPO CON EL MISMO NOMBRE (IGNORANDO MAYÚSCULAS/MINÚSCULAS)
+    final nombreNormalizado = value.trim().toLowerCase();
+    final existe = _camposExistentes.any((campo) => 
+      campo.nombre.trim().toLowerCase() == nombreNormalizado
+    );
+    
+    if (existe) {
+      return 'Ya existe un campo con ese nombre';
+    }
+    
+    return null;
   }
 
   Future<void> _crearCampo() async {
@@ -129,30 +168,19 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // NOMBRE - Máximo 30 caracteres
+              // NOMBRE - Con validación de duplicados
               _buildLabel('Nombre del Campo', isRequired: true),
               const SizedBox(height: 8),
               _buildTextField(
                 controller: _nombreController,
-                hintText: 'Ej: Campo Central (máx. 30 caracteres)',
+                hintText: 'Ej: Campo Halcones (máx. 30 caracteres)',
                 icon: null,
                 maxLength: 30,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El nombre es requerido';
-                  }
-                  if (value.length < 3) {
-                    return 'Mínimo 3 caracteres';
-                  }
-                  if (value.length > 30) {
-                    return 'Máximo 30 caracteres';
-                  }
-                  return null;
-                },
+                validator: _validarNombre, // ← VALIDACIÓN MEJORADA
               ),
               const SizedBox(height: 20),
 
-              // DIRECCIÓN - Máximo 100, mínimo 10
+              // DIRECCIÓN
               _buildLabel('Dirección', isRequired: true),
               const SizedBox(height: 8),
               _buildTextField(
@@ -231,14 +259,14 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
               ),
               const SizedBox(height: 20),
 
-              // FOTO URL - Máximo 100 caracteres
+              // FOTO URL - Máximo 500 caracteres
               _buildLabel('URL de la Foto'),
               const SizedBox(height: 8),
               _buildTextField(
                 controller: _fotoUrlController,
-                hintText: 'https://ejemplo.com/foto.jpg (máx. 100 caracteres)',
+                hintText: 'https://ejemplo.com/foto.jpg (máx. 500 caracteres)',
                 icon: Icons.image_outlined,
-                maxLength: 100,
+                maxLength: 500,
                 validator: (value) {
                   if (value != null && value.isNotEmpty) {
                     if (!value.startsWith('http')) {
@@ -247,8 +275,8 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
                     if (value.length < 10) {
                       return 'Mínimo 10 caracteres';
                     }
-                    if (value.length > 100) {
-                      return 'Máximo 100 caracteres';
+                    if (value.length > 500) {
+                      return 'Máximo 500 caracteres';
                     }
                   }
                   return null;
