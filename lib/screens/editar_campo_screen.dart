@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import '../models/campos_model.dart';
 import '../services/campo_service.dart';
 
-class NuevoCampoScreen extends StatefulWidget {
-  const NuevoCampoScreen({super.key});
+class EditarCampoScreen extends StatefulWidget {
+  final CampoFutbolModel campo;
+  
+  const EditarCampoScreen({super.key, required this.campo});
 
   @override
-  State<NuevoCampoScreen> createState() => _NuevoCampoScreenState();
+  State<EditarCampoScreen> createState() => _EditarCampoScreenState();
 }
 
-class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
+class _EditarCampoScreenState extends State<EditarCampoScreen> {
   static const Color backgroundColor = Color(0xFF1a1a1a);
   static const Color cardColor = Color(0xFF1e1e1e);
   static const Color inputColor = Color(0xFF2a2a2a);
@@ -31,6 +33,16 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
+  void initState() {
+    super.initState();
+    _nombreController.text = widget.campo.nombre;
+    _direccionController.text = widget.campo.direccion;
+    _modalidadSeleccionada = widget.campo.cantidad;
+    _disponible = widget.campo.disponible;
+    _fotoUrlController.text = widget.campo.fotoUrl ?? '';
+  }
+
+  @override
   void dispose() {
     _nombreController.dispose();
     _direccionController.dispose();
@@ -38,7 +50,7 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
     super.dispose();
   }
 
-  Future<void> _crearCampo() async {
+  Future<void> _actualizarCampo() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -48,7 +60,8 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
     });
 
     try {
-      final nuevoCampo = CampoFutbolModel(
+      final campoActualizado = CampoFutbolModel(
+        id: widget.campo.id,
         nombre: _nombreController.text.trim(),
         direccion: _direccionController.text.trim(),
         cantidad: _modalidadSeleccionada,
@@ -58,12 +71,12 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
             : _fotoUrlController.text.trim(),
       );
 
-      await _service.crearCampo(nuevoCampo);
+      await _service.actualizarCampo(campoActualizado);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Campo creado exitosamente'),
+            content: Text('✅ Campo actualizado exitosamente'),
             backgroundColor: primaryColor,
             duration: Duration(seconds: 2),
           ),
@@ -104,7 +117,7 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Nuevo Campo',
+              'Editar Campo',
               style: TextStyle(
                 color: textPrimary,
                 fontSize: 20,
@@ -113,7 +126,7 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
             ),
             SizedBox(height: 4),
             Text(
-              'Completa la información',
+              'Actualiza la información del campo',
               style: TextStyle(
                 color: textSecondary,
                 fontSize: 12,
@@ -367,7 +380,7 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: GestureDetector(
-                      onTap: _isLoading ? null : _crearCampo,
+                      onTap: _isLoading ? null : _actualizarCampo,
                       child: Container(
                         height: 48,
                         decoration: BoxDecoration(
@@ -394,13 +407,13 @@ class _NuevoCampoScreenState extends State<NuevoCampoScreen> {
                                       MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.edit_note,
+                                      Icons.save,
                                       color: Color(0xFF0a0a0a),
                                       size: 20,
                                     ),
                                     SizedBox(width: 8),
                                     Text(
-                                      'Crear Campo',
+                                      'Actualizar Campo',
                                       style: TextStyle(
                                         color: Color(0xFF0a0a0a),
                                         fontSize: 15,
