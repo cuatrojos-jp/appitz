@@ -5,27 +5,21 @@ class CampoService {
   final SupabaseClient _client = Supabase.instance.client;
   final String table = 'campos';
 
-  
+  // 🔹 CREATE
   Future<void> crearCampo(CampoFutbolModel campo) async {
-    final response = await _client
-        .from(table)
-        .insert(campo.toJsonSinId());
-
-    print('✅ RESPUESTA INSERT SUPABASE: $response');
+    await _client.from(table).insert(campo.toJsonSinId());
   }
 
-  // 🔹 READ (todos)
+  // 🔹 READ (TODOS)
   Future<List<CampoFutbolModel>> obtenerCampos() async {
     final response = await _client.from(table).select();
-
-    print('✅ RESPUESTA SELECT: $response');
 
     return (response as List)
         .map((json) => CampoFutbolModel.fromJson(json))
         .toList();
   }
 
-  // 🔹 READ por ID
+  // 🔥 READ POR ID
   Future<CampoFutbolModel?> obtenerCampoPorId(String id) async {
     final response = await _client
         .from(table)
@@ -33,38 +27,44 @@ class CampoService {
         .eq('id', id)
         .maybeSingle();
 
-    print('✅ RESPUESTA SELECT ID: $response');
-
     if (response == null) return null;
 
     return CampoFutbolModel.fromJson(response);
   }
 
-  // 🔹 UPDATE
-  Future<void> actualizarCampo(String id, CampoFutbolModel campo) async {
-    final response = await _client
-        .from(table)
-        .update(campo.toJsonSinId())
-        .eq('id', id);
-
-    print('✅ RESPUESTA UPDATE: $response');
+// 🔹 UPDATE (VERSIÓN MÁS SEGURA)
+Future<void> actualizarCampo(CampoFutbolModel campo) async {
+  // ✅ Validar que el id exista
+  final id = campo.id;
+  if (id == null) {
+    throw Exception('No se puede actualizar: el campo no tiene ID');
   }
-
+  
+  try {
+    await _client
+        .from(table)
+        .update({
+          'nombre': campo.nombre,
+          'direccion': campo.direccion,
+          'cantidad': campo.cantidad,
+          'disponible': campo.disponible,
+          'foto_url': campo.fotoUrl,
+        })
+        .eq('id', id);
+  } catch (e) {
+    throw Exception('Error al actualizar campo: $e');
+  }
+}
   // 🔹 DELETE
   Future<void> eliminarCampo(String id) async {
-    final response =
-        await _client.from(table).delete().eq('id', id);
-
-    print('✅ RESPUESTA DELETE: $response');
+    await _client.from(table).delete().eq('id', id);
   }
 
-  // 🔥 CAMBIAR DISPONIBILIDAD (BOOL)
+  // 🔹 CAMBIAR DISPONIBILIDAD
   Future<void> cambiarDisponibilidad(String id, bool estado) async {
-    final response = await _client
+    await _client
         .from(table)
         .update({'disponible': estado})
         .eq('id', id);
-
-    print('✅ RESPUESTA CAMBIAR DISPONIBILIDAD: $response');
   }
 }

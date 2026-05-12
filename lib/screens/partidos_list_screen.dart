@@ -576,7 +576,7 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PartidoFormScreen(),
+                      builder: (context) => PartidoFormScreen(partido: partido),
                     ),
                   );
                   if (result == true) {

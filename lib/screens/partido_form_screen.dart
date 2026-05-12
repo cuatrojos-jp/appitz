@@ -1,3 +1,4 @@
+import 'package:appitz/services/partido_validator.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/temporadas_model.dart';
@@ -48,8 +49,9 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
   bool _isSaving = false;
   String? _errorMessage;
   bool _esTemporadaActiva = false;
-
   bool get _esEdicion => widget.partido != null;
+  bool _observacionesExcedeLimite = false;
+  String _observacionesError = '';
 
   @override
   void initState() {
@@ -181,6 +183,19 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
     _filtrarPorCampo();
   }
 
+  void _validarObservaciones(String value) {
+    setState(() {
+      if (value.length > PartidoValidator.maxObservacionesLength) {
+        _observacionesExcedeLimite = true;
+        _observacionesError =
+            'Máximo ${PartidoValidator.maxObservacionesLength} caracteres. ';
+      } else {
+        _observacionesExcedeLimite = false;
+        _observacionesError = '';
+      }
+    });
+  }
+
   Future<void> _seleccionarFecha() async {
     final picked = await showDatePicker(
       context: context,
@@ -258,6 +273,15 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
       );
       return;
     }
+    if (_observacionesController.text.length >
+        PartidoValidator.maxObservacionesLength) {
+      showSnackBar(
+        context,
+        'Las observaciones exceden el límite de ${PartidoValidator.maxObservacionesLength} caracteres',
+        color: Colors.red,
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
 
@@ -316,11 +340,11 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _isSaving ? null : _guardar,
+            onPressed: (_isSaving || _observacionesExcedeLimite) ? null : _guardar,
             child: Text(
               'Guardar',
               style: TextStyle(
-                color: _isSaving ? Colors.grey : AppTheme.primaryColor,
+                color: (_isSaving || _observacionesExcedeLimite) ? Colors.grey : AppTheme.primaryColor,
                 fontSize: 16,
               ),
             ),
@@ -488,6 +512,20 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
                           color: AppTheme.primaryColor,
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
                           width: 2,
                         ),
                       ),

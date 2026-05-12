@@ -6,6 +6,7 @@ void showSnackBar(
   Color? color, 
   Color? textColor,
   SnackBarBehavior? behavior,
+  Duration? duration,
   }) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
@@ -15,6 +16,7 @@ void showSnackBar(
         ),
       backgroundColor: color,
       behavior: behavior ?? SnackBarBehavior.fixed,
+      duration: duration ?? Duration(seconds: 3),
     ),
   );
 }
