@@ -210,10 +210,8 @@ class _UsuariosListScreenState extends State<UsuariosListScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => UsuarioFormScreen(
-          usuario: usuario,
-          onGuardar: (u) async {},
-        ),
+        builder: (_) =>
+            UsuarioFormScreen(usuario: usuario, onGuardar: (u) async {}),
       ),
     );
 
@@ -254,7 +252,9 @@ class _UsuariosListScreenState extends State<UsuariosListScreen> {
       if (u.activo) {
         await _usuarioService.desactivarUsuario(u.id);
       } else {
-        await _usuarioService.reactivarUsuario(u.id, u.rolId);
+        final rolId = u.rolId.isNotEmpty ? u.rolId : _rolJugadorId;
+
+        await _usuarioService.reactivarUsuario(u.id, rolId);
       }
       await _cargarUsuarios();
 

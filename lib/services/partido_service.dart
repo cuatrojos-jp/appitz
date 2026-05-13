@@ -3,6 +3,7 @@ import '../models/partido_model.dart';
 import '../models/campos_model.dart';
 import '../models/equipos_model.dart';
 import 'partido_validator.dart';
+import 'equipo_service.dart';
 
 class PartidoService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -220,8 +221,6 @@ class PartidoService {
     return response.map((json) => EquipoModel.fromJson(json)).toList();
   }
 
-  // lib/services/equipo_service.dart
-
   /// Obtener equipos con sus categorías en una temporada específica
   Future<List<Map<String, dynamic>>> obtenerEquiposConCategoriaEnTemporada(
     String temporadaId,
@@ -252,7 +251,8 @@ class PartidoService {
     }
 
     // 4. Obtener todos los equipos
-    final todosEquipos = await obtenerTodos();
+    final equipoService = EquipoService();
+    final todosEquipos = await equipoService.obtenerEquipos();
 
     // 5. Combinar
     return todosEquipos.map((equipo) {

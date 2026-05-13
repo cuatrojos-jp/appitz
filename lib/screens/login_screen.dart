@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  void _navigateToDashboard(BuildContext context, String rolId) {  // ← Agregar parámetro rolId
+  void _navigateToDashboard(BuildContext context, String rolId) {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
