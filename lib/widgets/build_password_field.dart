@@ -39,6 +39,7 @@ class BuildPasswordField extends StatelessWidget {
             validator ?? 
             (v) => (v == null || v.isEmpty) ? 'Campo requerido' : null,
           decoration: InputDecoration(
+            errorMaxLines: 3,
             hintText: '••••••••',
             hintStyle: const TextStyle(color: AppTheme.mutedForegroundColor),
             prefixIcon: const Icon(

@@ -228,7 +228,7 @@ class UsuarioService {
   Future<void> desactivarUsuario(String usuarioId) async {
     await _supabase
         .from('usuarios')
-        .update({'activo': false})
+        .update({'activo': false, 'rol_id': null,})
         .eq('id', usuarioId);
   }
 

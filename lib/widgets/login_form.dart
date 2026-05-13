@@ -3,7 +3,7 @@ import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import 'build_field.dart';
 import 'build_password_field.dart';
-import 'show_snackbar.dart';
+import '../utils/error_handler.dart';
 
 class LoginForm extends StatefulWidget {
   final void Function(String rolId) onSuccess;
@@ -45,7 +45,7 @@ class _LoginFormState extends State<LoginForm> {
       }
     } catch (e) {
       if (mounted) {
-        showSnackBar(context, e.toString(), color: AppTheme.errorColor);
+        AuthErrorHandler.showErrorSnackBar(context, e); // ← Centralizado
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -124,7 +124,6 @@ class _LoginFormState extends State<LoginForm> {
             const SizedBox(height: 24),
 
             _buildSubmitButton(),
-            
           ],
         ),
       ),

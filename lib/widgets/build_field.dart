@@ -46,6 +46,7 @@ class BuildField extends StatelessWidget {
               ? 'Campo requerido'
               : null,
           decoration: InputDecoration(
+            errorMaxLines: 3,
             hintText: hint,
             hintStyle: const TextStyle(
               color: AppTheme.mutedForegroundColor,

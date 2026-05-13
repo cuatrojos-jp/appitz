@@ -34,7 +34,8 @@ class _UsuarioFormScreenState extends State<UsuarioFormScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedRolId = widget.usuario?.rolId ?? _jugadorRoleId;
+    final rolId = widget.usuario?.rolId;
+    _selectedRolId = (rolId == null || rolId.isEmpty) ? _jugadorRoleId : rolId;
   }
 
   @override
@@ -185,7 +186,7 @@ class _UsuarioFormScreenState extends State<UsuarioFormScreen> {
 
               // Dropdown Rol
               DropdownButtonFormField<String>(
-                value: _selectedRolId,
+                initialValue: (_selectedRolId.isEmpty || _selectedRolId == '') ? null : _selectedRolId,
                 style: const TextStyle(color: Colors.white),
                 dropdownColor: AppTheme.cardColor,
                 decoration: InputDecoration(
@@ -208,6 +209,10 @@ class _UsuarioFormScreenState extends State<UsuarioFormScreen> {
                   ),
                 ),
                 items: [
+                  // DropdownMenuItem(
+                  //   value: null,
+                  //   child: Text('Sin asignar'),
+                  // ),
                   DropdownMenuItem(
                     value: _jugadorRoleId,
                     child: const Text('Jugador'),
@@ -217,7 +222,7 @@ class _UsuarioFormScreenState extends State<UsuarioFormScreen> {
                     child: const Text('Coordinador'),
                   ),
                 ],
-                onChanged: (v) => setState(() => _selectedRolId = v!),
+                onChanged: (v) => setState(() => _selectedRolId = v ?? ''),
               ),
               const SizedBox(height: 32),
 
