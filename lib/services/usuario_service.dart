@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
+import '../models/jugador_model.dart';
 
 class UsuarioService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -160,27 +161,6 @@ class UsuarioService {
     await _supabase.auth.admin.deleteUser(usuarioId);
   }
 
-  // ============================================================
-  // ADMIN: LISTADO DE USUARIOS (TODOS)
-  // ============================================================
-
-  /// Obtener todos los usuarios del sistema (aprobados y pendientes)
-  // Future<List<Map<String, dynamic>>> obtenerTodosLosUsuarios() async {
-  //   final response = await _supabase
-  //       .from('usuarios')
-  //       .select('''
-  //         id,
-  //         nombre,
-  //         activo,
-  //         rol_id,
-  //         roles(nombre),
-  //         "auth.users"!inner(email, created_at)
-  //       ''')
-  //       .order('created_at', ascending: false);
-
-  //   return response;
-  // }
-
   Future<List<UserModel>> obtenerTodosLosUsuarios() async {
     final response = await _supabase
         .from('usuarios')
@@ -228,7 +208,7 @@ class UsuarioService {
   Future<void> desactivarUsuario(String usuarioId) async {
     await _supabase
         .from('usuarios')
-        .update({'activo': false, 'rol_id': null,})
+        .update({'activo': false, 'rol_id': null})
         .eq('id', usuarioId);
   }
 
@@ -269,18 +249,15 @@ class UsuarioService {
   }
 
   Future<void> editarUsuario({
-  required String usuarioId,
-  required String nuevoRolId,
-  required String nuevoNombre,
-}) async {
-  await _supabase
-      .from('usuarios')
-      .update({
-        'rol_id': nuevoRolId,
-        'nombre': nuevoNombre,
-      })
-      .eq('id', usuarioId);
-}
+    required String usuarioId,
+    required String nuevoRolId,
+    required String nuevoNombre,
+  }) async {
+    await _supabase
+        .from('usuarios')
+        .update({'rol_id': nuevoRolId, 'nombre': nuevoNombre})
+        .eq('id', usuarioId);
+  }
 
   // ============================================================
   // GESTIÓN DE USUARIOS
@@ -307,5 +284,65 @@ class UsuarioService {
       final errorData = response.data as Map<String, dynamic>;
       throw Exception(errorData['error'] ?? 'Error al crear usuario');
     }
+  }
+
+  // ==================================================
+  // VINCULAR JUGADORES
+  // ==================================================
+
+  Future<void> vincularJugadorAUsuario({
+    String? usuarioId,
+    String? usuarioEmail,
+    required String jugadorId,
+  }) async {
+    String? id = usuarioId;
+
+    if (id == null && usuarioEmail != null) {
+      // Buscar usuario por email
+      final response = await _supabase
+          .from('usuarios')
+          .select('id')
+          .eq('email', usuarioEmail)
+          .maybeSingle();
+
+      if (response == null) {
+        throw Exception('Usuario no encontrado');
+      }
+      id = response['id'] as String;
+    }
+
+    if (id == null) {
+      throw Exception('Se requiere usuarioId o usuarioEmail');
+    }
+
+    // Actualizar jugador con el usuario_id
+    await _supabase
+        .from('jugadores')
+        .update({'usuario_id': id})
+        .eq('id', jugadorId);
+  }
+
+  /// Desvincular jugador de un usuario
+  Future<void> desvincularJugador(String usuarioId) async {
+    await _supabase
+        .from('jugadores')
+        .update({'usuario_id': null})
+        .eq('usuario_id', usuarioId);
+  }
+
+  Future<JugadorModel?> obtenerJugadorPorUsuarioId(String usuarioId) async {
+    final response = await _supabase
+        .from('jugadores')
+        .select('id, nombre_completo')
+        .eq('usuario_id', usuarioId)
+        .maybeSingle();
+
+    if (response == null) return null;
+
+    return JugadorModel(
+      id: response['id'] as String,
+      nombreCompleto: response['nombre_completo'] as String,
+      usuarioId: usuarioId,
+    );
   }
 }

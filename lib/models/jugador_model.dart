@@ -6,6 +6,7 @@ class JugadorModel {
   final String? fotoUrl;
   final bool activo;
   final bool estadisticasPublicas;
+  final String? usuarioId;
 
   JugadorModel({
     this.id,
@@ -14,6 +15,7 @@ class JugadorModel {
     this.fotoUrl,
     this.activo = true,
     this.estadisticasPublicas = false,
+    this.usuarioId,
   });
 
   // Convertir a JSON para enviar a Supabase
@@ -24,6 +26,7 @@ class JugadorModel {
       'foto_url': fotoUrl,
       'activo': activo,
       'estadisticas_publicas': estadisticasPublicas,
+      'usuario_id': usuarioId,
     };
   }
 
@@ -38,6 +41,7 @@ class JugadorModel {
       fotoUrl: json['foto_url'],
       activo: json['activo'] ?? true,
       estadisticasPublicas: json['estadisticas_publicas'] ?? false,
+      usuarioId: json['usuario_id'] as String?
     );
   }
 }

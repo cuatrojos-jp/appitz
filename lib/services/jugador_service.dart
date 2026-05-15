@@ -28,6 +28,16 @@ class JugadorService {
         .toList();
   }
 
+  Future<List<JugadorModel>> obtenerJugadoresDisponibles() async {
+    final response = await _supabase
+        .from('jugadores')
+        .select('id, nombre_completo')
+        .filter('usuario_id', 'is', 'null')
+        .order('nombre_completo');
+
+    return response.map((json) => JugadorModel.fromJson(json)).toList();
+  }
+
   // Actualizar un jugador existente
   Future<JugadorModel> actualizarJugador(JugadorModel jugador) async {
     final response = await _supabase
