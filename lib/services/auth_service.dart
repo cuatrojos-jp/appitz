@@ -107,4 +107,18 @@ class AuthService {
       data: {'nombre': nombre}, // ← Va a raw_user_meta_data
     );
   }
+
+  // Obtener el UUID del usuario de la tabla "usuarios" y no auth.users
+  Future<String?> getUsuarioId() async {
+    final authId = getCurrentUserId();
+    if (authId == null) return null;
+
+    final response = await _supabase
+        .from('usuarios')
+        .select('id')
+        .eq('auth_id', authId)
+        .maybeSingle();
+
+    return response?['id'] as String?;
+  }
 }

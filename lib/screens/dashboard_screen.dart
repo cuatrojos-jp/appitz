@@ -1,5 +1,10 @@
 import 'package:appitz/screens/jugador_list_screen.dart';
 //import 'package:appitz/screens/temporadas_list_screen.dart';
+import '../services/dispositivo_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/notification_service.dart';
+import '../services/auth_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dashboard_card.dart';
@@ -63,8 +68,7 @@ class DashboardScreen extends StatelessWidget {
                     title: "Equipos",
                     icon: Icons.shield,
                     color: Colors.blue,
-                    onTap: () =>
-                        _navigateTo(context, const EquipoListScreen()),
+                    onTap: () => _navigateTo(context, const EquipoListScreen()),
                   ),
                   DashboardCard(
                     title: "Jugadores",

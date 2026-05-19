@@ -2,17 +2,30 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. Cargar variables de entorno
   await dotenv.load();
+
+  // 2. Inicializar Firebase
+  await Firebase.initializeApp();
+
+  // 3. Inicializar Supabase
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+
+  // 4. Inicializar servicio de notificaciones
+  await NotificationService().initialize();
+
   runApp(const MyApp());
 }
 

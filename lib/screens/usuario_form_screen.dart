@@ -30,7 +30,7 @@ class _UsuarioFormScreenState extends State<UsuarioFormScreen> {
 
   bool _isLoading = false;
   bool _cargandoJugadores = true;
-  List<JugadorModel> _jugadoresDisponibles = [];
+  //List<JugadorModel> _jugadoresDisponibles = [];
   List<JugadorModel> _todosLosJugadores = [];
   String? _selectedJugadorId;
   bool _cargandoJugadorActual = true;

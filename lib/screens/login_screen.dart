@@ -1,3 +1,5 @@
+import 'package:appitz/services/dispositivo_service.dart';
+import 'package:appitz/services/notification_service.dart';
 import 'package:appitz/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
@@ -46,7 +48,12 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  void _navigateToDashboard(BuildContext context, String rolId) {
+  void _navigateToDashboard(BuildContext context, String userId, String rolId) async {
+    final fcmToken = await NotificationService().getFCMToken();
+    if (fcmToken!= null && userId.isNotEmpty) {
+      await DispositivoService().guardarToken(userId, fcmToken);
+    }
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -103,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen>
                           const RegisterLogo(),
                           const SizedBox(height: 32),
                           LoginForm(
-                            onSuccess: (rolId) => _navigateToDashboard(context, rolId),
+                            onSuccess: (userId, rolId) => _navigateToDashboard(context, userId, rolId),
                           ),
                           const SizedBox(height: 24),
                           Row(
