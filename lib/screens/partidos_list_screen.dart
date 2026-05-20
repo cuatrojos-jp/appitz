@@ -63,6 +63,28 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
     }
   }
 
+  bool _enviandoRol = false;
+
+  Future<void> _enviarRol() async {
+    setState(() => _enviandoRol = true);
+    try {
+      await _partidoService.enviarRol();
+      if (mounted) {
+        showSnackBar(context, 'Rol enviado exitosamente', color: Colors.green);
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(
+          context,
+          'Error al enviar rol: ${e.toString()}',
+          color: Colors.red,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _enviandoRol = false);
+    }
+  }
+
   void _actualizarEventosCalendario() {
     _eventosCalendario = {};
     for (var partido in _partidos) {
@@ -128,15 +150,22 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
         content: Text(
           '¿Eliminar el partido entre ${partido.equipoLocalNombre} y ${partido.equipoVisitanteNombre}?',
         ),
+        // En el AppBar, reemplaza el actions actual
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+          IconButton(
+            icon: const Icon(Icons.send, color: Colors.white),
+            tooltip: 'Enviar rol',
+            onPressed: _enviandoRol ? null : _enviarRol,
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Eliminar'),
+          IconButton(
+            icon: const Icon(Icons.add, color: AppTheme.primaryColor),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PartidoFormScreen()),
+              );
+              if (result == true) _cargarPartidos();
+            },
           ),
         ],
       ),
