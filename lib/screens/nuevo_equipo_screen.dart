@@ -55,7 +55,6 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
     super.dispose();
   }
 
-  // 🔍 VALIDACIÓN DE NOMBRE DUPLICADO CON LÍMITE DE 50
   String? _validarNombre(String? value) {
     if (value == null || value.isEmpty) {
       return 'El nombre del equipo es requerido';
@@ -70,7 +69,6 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
     final nombreNormalizado = value.trim().toLowerCase();
     
     if (editando) {
-      // EDITAR: excluir el equipo actual
       final existe = _equiposExistentes.any((equipo) => 
         equipo.id != widget.equipo!.id &&
         equipo.nombre.trim().toLowerCase() == nombreNormalizado
@@ -79,7 +77,6 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
         return 'El nombre del equipo ya se encuentra registrado previamente, utilice uno diferente';
       }
     } else {
-      // CREAR: verificar contra todos
       final existe = _equiposExistentes.any((equipo) => 
         equipo.nombre.trim().toLowerCase() == nombreNormalizado
       );
@@ -98,7 +95,6 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
 
     try {
       if (editando) {
-        // EDITAR
         final equipo = EquipoModel(
           id: widget.equipo!.id,
           nombre: nombreController.text.trim(),
@@ -124,7 +120,6 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
           );
         }
       } else {
-        // CREAR
         final equipo = EquipoModel.nuevo(
           nombre: nombreController.text.trim(),
           escudoUrl: logoController.text.trim().isEmpty
@@ -243,9 +238,6 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // ============================================
-                  // NOMBRE DEL EQUIPO - CON LÍMITE DE 50 CARACTERES
-                  // ============================================
                   const Text(
                     "Nombre del Equipo *",
                     style: TextStyle(color: Colors.white70),
@@ -256,12 +248,10 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: _inputDecoration("Ej: Los Halcones (máx. 50 caracteres)"),
                     maxLength: 50,
-                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
                     validator: _validarNombre,
                   ),
                   const SizedBox(height: 30),
 
-                  // URL DEL ESCUDO
                   const Text(
                     "URL del Escudo (opcional)",
                     style: TextStyle(color: Colors.white70),
@@ -275,7 +265,6 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
 
                   const SizedBox(height: 30),
 
-                  // COLORES
                   Row(
                     children: [
                       Expanded(
@@ -304,7 +293,6 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
 
                   const SizedBox(height: 30),
 
-                  // MODALIDAD
                   const Text(
                     "Modalidad de Campo *",
                     style: TextStyle(color: Colors.white70),
@@ -328,7 +316,6 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
 
                   const SizedBox(height: 40),
 
-                  // BOTONES
                   Row(
                     children: [
                       Expanded(
