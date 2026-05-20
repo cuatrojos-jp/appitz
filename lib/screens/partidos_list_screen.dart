@@ -152,7 +152,8 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
   }
 
   String _formatearFecha(DateTime fecha) {
-    return '${fecha.day}/${fecha.month}/${fecha.year} - ${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}';
+    final local = fecha.toLocal();
+    return '${local.day}/${local.month}/${local.year} - ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
   Color _getEstadoColor(String codigo) {
@@ -208,60 +209,73 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
           ),
         ],
       ),
+
+      // Reemplaza el body completo del Scaffold
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
           ? _buildErrorView()
-          : Column(
-              children: [
-                _buildCalendar(),
-                const Divider(color: AppTheme.borderColor),
+          : CustomScrollView(
+              slivers: [
+                // Calendario como sliver
+                SliverToBoxAdapter(child: _buildCalendar()),
+
+                SliverToBoxAdapter(
+                  child: const Divider(color: AppTheme.borderColor),
+                ),
 
                 // Título con contador
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.list_alt,
-                        color: AppTheme.primaryColor,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Próximos Partidos',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.list_alt,
+                          color: AppTheme.primaryColor,
+                          size: 18,
                         ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${_partidos.length} partidos',
-                        style: const TextStyle(
-                          color: AppTheme.mutedForegroundColor,
-                          fontSize: 12,
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Próximos Partidos',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                    ],
+                        const Spacer(),
+                        Text(
+                          '${_partidos.length} partidos',
+                          style: const TextStyle(
+                            color: AppTheme.mutedForegroundColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
-                // Lista de partidos
-                Expanded(
-                  child: _partidos.isEmpty
-                      ? _buildEmptyView()
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          itemCount: _partidos.length,
-                          itemBuilder: (context, index) =>
-                              _buildPartidoCard(_partidos[index]),
+                // Lista de partidos o vista vacía
+                _partidos.isEmpty
+                    ? SliverFillRemaining(child: _buildEmptyView())
+                    : SliverPadding(
+                        // padding bottom respeta la barra de navegación de Android
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          8,
+                          16,
+                          MediaQuery.of(context).padding.bottom + 16,
                         ),
-                ),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) =>
+                                _buildPartidoCard(_partidos[index]),
+                            childCount: _partidos.length,
+                          ),
+                        ),
+                      ),
               ],
             ),
     );

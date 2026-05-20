@@ -38,7 +38,7 @@ class PartidoService {
           'campo_id': campoId,
           'equipo_local_id': equipoLocalId,
           'equipo_visitante_id': equipoVisitanteId,
-          'fecha_hora': fechaHora.toIso8601String(),
+          'fecha_hora': fechaHora.toUtc().toIso8601String(),
           if (categoriaId != null) 'categoria_id': categoriaId,
           if (observaciones != null && observaciones.isNotEmpty)
             'observaciones': observaciones,
@@ -82,8 +82,8 @@ class PartidoService {
           categorias(id, nombre),
           estados_partido(id, codigo)
         ''')
-        .gte('fecha_hora', inicio.toIso8601String())
-        .lt('fecha_hora', fin.toIso8601String())
+        .gte('fecha_hora', inicio.toUtc().toIso8601String())
+        .lt('fecha_hora', fin.toUtc().toIso8601String())
         .order('fecha_hora', ascending: true);
 
     return response.map((json) => PartidoModel.fromJson(json)).toList();
@@ -146,7 +146,7 @@ class PartidoService {
     if (equipoVisitanteId != null) {
       updates['equipo_visitante_id'] = equipoVisitanteId;
     }
-    if (fechaHora != null) updates['fecha_hora'] = fechaHora.toIso8601String();
+    if (fechaHora != null) updates['fecha_hora'] = fechaHora.toUtc().toIso8601String();
     if (categoriaId != null) updates['categoria_id'] = categoriaId;
     if (observaciones != null) {
       updates['observaciones'] = observaciones.isEmpty ? null : observaciones;

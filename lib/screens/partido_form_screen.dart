@@ -120,7 +120,7 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
         _selectedEquipoVisitanteId = widget.partido!.equipoVisitanteId;
         _selectedCampoId = widget.partido!.campoId;
         _selectedCategoriaId = widget.partido!.categoriaId;
-        _selectedFecha = widget.partido!.fechaHora;
+        _selectedFecha = widget.partido!.fechaHora.toLocal();
         _observacionesController.text = widget.partido!.observaciones ?? '';
 
         await _filtrarPorCampo();
@@ -572,7 +572,8 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
   }
 
   String _formatearFecha(DateTime fecha) {
-    return '${fecha.day}/${fecha.month}/${fecha.year} - ${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}';
+    final local = fecha.toLocal();
+    return '${local.day}/${local.month}/${local.year} - ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _buildErrorView() {
