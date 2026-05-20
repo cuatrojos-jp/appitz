@@ -26,6 +26,9 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
   DateTime _fechaEnfoque = DateTime.now();
   Map<DateTime, List<PartidoModel>> _eventosCalendario = {};
 
+  // Control de filtrado
+  bool _filtrando = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,14 +46,12 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
       final partidos = await _partidoService.obtenerTodosLosPartidos();
       setState(() {
         _partidos = partidos;
-        _partidosDelDia = _partidos
-            .where(
-              (p) =>
-                  p.fechaHora.year == _fechaSeleccionada.year &&
-                  p.fechaHora.month == _fechaSeleccionada.month &&
-                  p.fechaHora.day == _fechaSeleccionada.day,
-            )
-            .toList();
+        _partidosDelDia = _partidos.where((p) {
+          final local = p.fechaHora.toLocal();
+          return local.year == _fechaSeleccionada.year &&
+              local.month == _fechaSeleccionada.month &&
+              local.day == _fechaSeleccionada.day;
+        }).toList();
         _actualizarEventosCalendario();
         _isLoading = false;
       });
@@ -65,11 +66,8 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
   void _actualizarEventosCalendario() {
     _eventosCalendario = {};
     for (var partido in _partidos) {
-      final fecha = DateTime(
-        partido.fechaHora.year,
-        partido.fechaHora.month,
-        partido.fechaHora.day,
-      );
+      final fechaLocal = partido.fechaHora.toLocal();
+      final fecha = DateTime(fechaLocal.year, fechaLocal.month, fechaLocal.day);
       if (_eventosCalendario[fecha] == null) {
         _eventosCalendario[fecha] = [];
       }
@@ -81,16 +79,24 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
     setState(() {
       _fechaSeleccionada = selectedDay;
       _fechaEnfoque = focusedDay;
-      _partidosDelDia = _partidos
-          .where(
-            (p) =>
-                p.fechaHora.year == selectedDay.year &&
-                p.fechaHora.month == selectedDay.month &&
-                p.fechaHora.day == selectedDay.day,
-          )
-          .toList();
+      _filtrando = true;
+      _partidosDelDia = _partidos.where((p) {
+        final local = p.fechaHora.toLocal();
+        return local.year == selectedDay.year &&
+            local.month == selectedDay.month &&
+            local.day == selectedDay.day;
+      }).toList();
     });
   }
+
+  void _mostrarTodos() {
+    setState(() {
+      _filtrando = false;
+    });
+  }
+
+  List<PartidoModel> get _partidosMostrados =>
+      _filtrando ? _partidosDelDia : _partidos;
 
   Future<void> _actualizarEstadoPartido(
     PartidoModel partido,
@@ -103,7 +109,7 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
       if (mounted) {
         showSnackBar(
           context,
-          'Partido ${partido.equipoLocalNombre} vs ${partido.equipoVisitanteNombre} ${nuevoEstadoCodigo}',
+          'Partido ${partido.equipoLocalNombre} vs ${partido.equipoVisitanteNombre} $nuevoEstadoCodigo',
           color: Colors.green,
         );
       }
@@ -152,7 +158,8 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
   }
 
   String _formatearFecha(DateTime fecha) {
-    return '${fecha.day}/${fecha.month}/${fecha.year} - ${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}';
+    final local = fecha.toLocal();
+    return '${local.day}/${local.month}/${local.year} - ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
   Color _getEstadoColor(String codigo) {
@@ -212,56 +219,116 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
           ? _buildErrorView()
-          : Column(
-              children: [
-                _buildCalendar(),
-                const Divider(color: AppTheme.borderColor),
+          : CustomScrollView(
+              slivers: [
+                // Calendario como sliver
+                SliverToBoxAdapter(child: _buildCalendar()),
 
-                // Título con contador
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.list_alt,
-                        color: AppTheme.primaryColor,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Próximos Partidos',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                SliverToBoxAdapter(
+                  child: const Divider(color: AppTheme.borderColor),
+                ),
+
+                // Título con contador y botón "Mostrar todos"
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.list_alt,
+                          color: AppTheme.primaryColor,
+                          size: 18,
                         ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${_partidos.length} partidos',
-                        style: const TextStyle(
-                          color: AppTheme.mutedForegroundColor,
-                          fontSize: 12,
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Partidos',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_partidosMostrados.length}',
+                          style: const TextStyle(
+                            color: AppTheme.mutedForegroundColor,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const Spacer(),
+                        // Botón "Mostrar todos" / filtro activo
+                        GestureDetector(
+                          onTap: _filtrando ? _mostrarTodos : null,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _filtrando
+                                  ? AppTheme.primaryColor
+                                  : AppTheme.secondaryColor,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: _filtrando
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.borderColor,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _filtrando
+                                      ? Icons.filter_alt
+                                      : Icons.filter_alt_off,
+                                  size: 13,
+                                  color: _filtrando
+                                      ? Colors.black
+                                      : AppTheme.mutedForegroundColor,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  _filtrando
+                                      ? 'Mostrar todos'
+                                      : 'Todos los partidos',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: _filtrando
+                                        ? Colors.black
+                                        : AppTheme.mutedForegroundColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
-                // Lista de partidos
-                Expanded(
-                  child: _partidos.isEmpty
-                      ? _buildEmptyView()
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          itemCount: _partidos.length,
-                          itemBuilder: (context, index) =>
-                              _buildPartidoCard(_partidos[index]),
+                // Lista de partidos o vista vacía
+                _partidosMostrados.isEmpty
+                    ? SliverFillRemaining(child: _buildEmptyView())
+                    : SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          8,
+                          16,
+                          MediaQuery.of(context).padding.bottom + 16,
                         ),
-                ),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) =>
+                                _buildPartidoCard(_partidosMostrados[index]),
+                            childCount: _partidosMostrados.length,
+                          ),
+                        ),
+                      ),
               ],
             ),
     );
@@ -281,9 +348,14 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
           });
         },
         calendarFormat: CalendarFormat.month,
-        eventLoader: (day) => _eventosCalendario[day] ?? [],
+        eventLoader: (day) {
+          // Normalizar el día a medianoche para que coincida con las keys del mapa
+          final normalizado = DateTime(day.year, day.month, day.day);
+          return _eventosCalendario[normalizado] ?? [];
+        },
         selectedDayPredicate: (day) {
-          return _fechaSeleccionada.year == day.year &&
+          return _filtrando &&
+              _fechaSeleccionada.year == day.year &&
               _fechaSeleccionada.month == day.month &&
               _fechaSeleccionada.day == day.day;
         },
@@ -333,29 +405,40 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
             color: AppTheme.mutedForegroundColor,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No hay partidos programados',
-            style: TextStyle(color: AppTheme.mutedForegroundColor),
+          Text(
+            _filtrando
+                ? 'No hay partidos este día'
+                : 'No hay partidos programados',
+            style: const TextStyle(color: AppTheme.mutedForegroundColor),
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PartidoFormScreen()),
-              );
-              if (result == true) {
-                _cargarPartidos();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+          if (!_filtrando)
+            ElevatedButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PartidoFormScreen()),
+                );
+                if (result == true) {
+                  _cargarPartidos();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+              ),
+              child: const Text(
+                'Crear partido',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
-            child: const Text(
-              'Crear partido',
-              style: TextStyle(color: Colors.black),
+          if (_filtrando)
+            TextButton(
+              onPressed: _mostrarTodos,
+              child: const Text(
+                'Ver todos los partidos',
+                style: TextStyle(color: AppTheme.primaryColor),
+              ),
             ),
-          ),
         ],
       ),
     );

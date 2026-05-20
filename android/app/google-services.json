@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "147888492818",
+    "project_id": "appitz-notificaciones",
+    "storage_bucket": "appitz-notificaciones.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:147888492818:android:5b84cf9be64fed1333a3cb",
+        "android_client_info": {
+          "package_name": "com.example.appitz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAH_m5pHY7V7p9CU6tcBHJ8Ei8Wx2ZnMnE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

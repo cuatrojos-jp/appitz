@@ -6,7 +6,7 @@ import 'build_password_field.dart';
 import '../utils/error_handler.dart';
 
 class LoginForm extends StatefulWidget {
-  final void Function(String rolId) onSuccess;
+  final void Function(String userId,String rolId) onSuccess;
   const LoginForm({super.key, required this.onSuccess});
 
   @override
@@ -41,7 +41,7 @@ class _LoginFormState extends State<LoginForm> {
     try {
       final (user, rolId, permisos) = await _authService.login(email, password);
       if (mounted) {
-        widget.onSuccess(rolId!);
+        widget.onSuccess(user.id, rolId!);
       }
     } catch (e) {
       if (mounted) {

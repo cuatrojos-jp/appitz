@@ -1,8 +1,10 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
+  static const String _rolIdKey = 'user_rol_id';
 
   Future<(UserModel, String?, Map<String, dynamic>?)> login(
     String email,
@@ -44,16 +46,29 @@ class AuthService {
     final rolId = userData['rol_id'] as String?;
     final permisos = userData['roles']?['permisos'] as Map<String, dynamic>?;
 
+    if (rolId != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_rolIdKey, rolId);
+    }
+
     return (user, rolId, permisos);
   }
 
   Future<void> logout() async {
     await _supabase.auth.signOut();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_rolIdKey);
   }
 
   Future<bool> isLoggedIn() async {
     final session = _supabase.auth.currentSession;
     return session != null;
+  }
+
+  Future<String?> getSavedRolId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_rolIdKey);
   }
 
   String? getCurrentUserId() {
@@ -91,5 +106,19 @@ class AuthService {
       password: password,
       data: {'nombre': nombre}, // ← Va a raw_user_meta_data
     );
+  }
+
+  // Obtener el UUID del usuario de la tabla "usuarios" y no auth.users
+  Future<String?> getUsuarioId() async {
+    final authId = getCurrentUserId();
+    if (authId == null) return null;
+
+    final response = await _supabase
+        .from('usuarios')
+        .select('id')
+        .eq('auth_id', authId)
+        .maybeSingle();
+
+    return response?['id'] as String?;
   }
 }
