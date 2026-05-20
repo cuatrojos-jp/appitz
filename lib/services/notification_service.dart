@@ -1,5 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import '../screens/partidos_list_screen.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -9,17 +11,21 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
+  // Contexto guardado para navegación
+  BuildContext? _context;
+
+  void setContext(BuildContext context) {
+    _context = context;
+  }
+
   void _onNotificationTap(NotificationResponse response) {
-    print('📱 Notificación tocada: ${response.payload}');
     _handleNavigation(response.payload);
   }
 
   @pragma('vm:entry-point')
   static void onDidReceiveBackgroundNotificationResponse(
     NotificationResponse response,
-  ) {
-    print('📱 Notificación en segundo plano: ${response.payload}');
-  }
+  ) {}
 
   Future<void> initialize() async {
     const AndroidInitializationSettings androidSettings =
@@ -45,7 +51,7 @@ class NotificationService {
     );
 
     await _requestPermissions();
-    _setupFCMHandlers();
+    _setupFCMHandlers(); // Solo aquí, no duplicar en setupInteractedMessage
     _printToken();
   }
 
@@ -60,8 +66,8 @@ class NotificationService {
   }
 
   void _setupFCMHandlers() {
+    // App en primer plano — mostrar notificación local
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('📨 Notificación recibida');
       showLocalNotification(
         title: message.notification?.title ?? '',
         body: message.notification?.body ?? '',
@@ -69,14 +75,14 @@ class NotificationService {
       );
     });
 
+    // App en segundo plano — usuario tocó la notificación
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('🔔 Usuario tocó la notificación');
       _handleNavigation(message.data['route']);
     });
 
+    // App terminada — usuario tocó la notificación
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null) {
-        print('🚀 App abierta desde notificación');
         _handleNavigation(message.data['route']);
       }
     });
@@ -114,7 +120,18 @@ class NotificationService {
   }
 
   void _handleNavigation(String? route) {
-    print('📍 Navegar a: $route');
+    if (_context == null || route == null) return;
+    final context = _context!;
+
+    switch (route) {
+      case '/partidos':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PartidosListScreen()),
+        );
+        break;
+      // Agrega más rutas aquí a futuro
+    }
   }
 
   Future<String?> getFCMToken() async {
