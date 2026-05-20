@@ -61,6 +61,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _verificarSesion();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    NotificationService().setContext(context);  
+  }
+
   Future<void> _verificarSesion() async {
     final session = Supabase.instance.client.auth.currentSession;
 

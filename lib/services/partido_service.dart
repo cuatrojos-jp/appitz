@@ -146,7 +146,8 @@ class PartidoService {
     if (equipoVisitanteId != null) {
       updates['equipo_visitante_id'] = equipoVisitanteId;
     }
-    if (fechaHora != null) updates['fecha_hora'] = fechaHora.toUtc().toIso8601String();
+    if (fechaHora != null)
+      updates['fecha_hora'] = fechaHora.toUtc().toIso8601String();
     if (categoriaId != null) updates['categoria_id'] = categoriaId;
     if (observaciones != null) {
       updates['observaciones'] = observaciones.isEmpty ? null : observaciones;
@@ -261,5 +262,39 @@ class PartidoService {
         'categoria_ids': categoriasPorEquipo[equipo.id] ?? [],
       };
     }).toList();
+  }
+
+  Future<void> enviarRol() async {
+    final hoy = DateTime.now();
+    final diaSemana = hoy.weekday; // 1=lunes, 7=domingo
+
+    DateTime inicio;
+    DateTime fin;
+    String tipoRol;
+
+    if (diaSemana >= 1 && diaSemana <= 4) {
+      final diasHastaViernes = 5 - diaSemana;
+      inicio = DateTime(hoy.year, hoy.month, hoy.day + diasHastaViernes);
+      fin = inicio.add(const Duration(days: 2)); // viernes, sábado, domingo
+      tipoRol = 'fin_de_semana';
+    } else {
+      final diasHastaLunes = 8 - diaSemana;
+      inicio = DateTime(hoy.year, hoy.month, hoy.day + diasHastaLunes);
+      fin = inicio.add(const Duration(days: 6)); // lunes a domingo
+      tipoRol = 'semanal';
+    }
+
+    final response = await _supabase.functions.invoke(
+      'send-rol',
+      body: {
+        'inicio': inicio.toUtc().toIso8601String(),
+        'fin': fin.toUtc().toIso8601String(),
+        'tipo_rol': tipoRol,
+      },
+    );
+
+    if (response.status != 200) {
+      throw Exception('Error al enviar rol: ${response.data}');
+    }
   }
 }
