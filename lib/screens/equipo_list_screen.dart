@@ -14,10 +14,14 @@ class EquipoListScreen extends StatefulWidget {
 
 class _EquipoListScreenState extends State<EquipoListScreen>
     with AutomaticKeepAliveClientMixin {
-  // ← Mixin para mantener estado vivo
-
   final EquipoService _service = EquipoService();
   late Future<List<EquipoModel>> _equiposFuture;
+
+  // 🔍 PARA EL BUSCADOR
+  List<EquipoModel> _todosLosEquipos = [];
+  List<EquipoModel> _equiposFiltrados = [];
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
 
   // 🎨 COLORES
   static const Color backgroundColor = Color(0xFF1a1a1a);
@@ -27,22 +31,53 @@ class _EquipoListScreenState extends State<EquipoListScreen>
   static const Color enabledBadgeColor = Color(0xFF2A6F5C);
 
   @override
-  bool get wantKeepAlive => true; // ← Para AutomaticKeepAliveClientMixin
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _equiposFuture = _service.obtenerEquipos();
+    _cargarEquipos();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _cargarEquipos() {
+    _equiposFuture = _service.obtenerEquipos().then((equipos) {
+      _todosLosEquipos = equipos;
+      _equiposFiltrados = equipos;
+      return equipos;
+    });
+    setState(() {});
   }
 
   void _recargar() {
-    if (mounted) {
-      print('🔵 _recargar llamado, mounted: ${mounted}');
-      setState(() {
-        // ✅ Crear NUEVO Future para forzar reconstrucción limpia
-        _equiposFuture = _service.obtenerEquipos();
-      });
-    }
+    _cargarEquipos();
+    _limpiarBusqueda();
+  }
+
+  void _limpiarBusqueda() {
+    _searchController.clear();
+    _isSearching = false;
+    _equiposFiltrados = _todosLosEquipos;
+    setState(() {});
+  }
+
+  void _filtrarEquipos(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _equiposFiltrados = _todosLosEquipos;
+        _isSearching = false;
+      } else {
+        _equiposFiltrados = _todosLosEquipos.where((equipo) {
+          return equipo.nombre.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+        _isSearching = true;
+      }
+    });
   }
 
   Future<void> _editarEquipo(EquipoModel equipo) async {
@@ -52,10 +87,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
     );
     if (resultado == true && mounted) _recargar();
   }
-
-  // ============================================================
-  // MÉTODOS PARA HABILITAR/DESHABILITAR
-  // ============================================================
 
   Future<void> _deshabilitarEquipo(EquipoModel equipo) async {
     final resultado = await mostrarDialogoConfirmacion(
@@ -76,7 +107,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
 
     try {
       await _service.deshabilitarEquipo(equipoId: equipo.id, razon: razon);
-
       if (mounted) {
         _recargar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,7 +142,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
 
     try {
       await _service.habilitarEquipo(equipo.id);
-
       if (mounted) {
         _recargar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -170,22 +199,22 @@ class _EquipoListScreenState extends State<EquipoListScreen>
       await _service.eliminarEquipo(equipo.id);
       if (mounted) {
         _recargar();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('✅ Equipo eliminado')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Equipo eliminado')),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('❌ Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error: $e')),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // ← Importante para AutomaticKeepAliveClientMixin
+    super.build(context);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -209,96 +238,141 @@ class _EquipoListScreenState extends State<EquipoListScreen>
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
-              width: double.infinity,
-              margin: const EdgeInsets.all(20),
-              child: FutureBuilder<List<EquipoModel>>(
-                future: _equiposFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: neon),
-                    );
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.sports_soccer,
-                            size: 64,
-                            color: Colors.white24,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Sin equipos creados',
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Toca el + para agregar tu primer equipo',
-                            style: TextStyle(
-                              color: Colors.white30,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final equipos = snapshot.data!;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 🔝 HEADER
-                      const Text(
-                        'Mis Equipos',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${equipos.length} equipo${equipos.length != 1 ? 's' : ''} creado${equipos.length != 1 ? 's' : ''}',
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ✅ LISTVIEW.BUILDER en lugar de Column + map
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: equipos.length,
-                        itemBuilder: (context, index) =>
-                            _buildCard(equipos[index]),
-                      ),
-
-                      const SizedBox(height: 80),
-                    ],
-                  );
-                },
+          child: Column(
+            children: [
+              // 🔍 BARRA DE BÚSQUEDA (LUPA)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: _filtrarEquipos,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar equipo por nombre...',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      prefixIcon: const Icon(Icons.search, color: neon),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.white38),
+                              onPressed: _limpiarBusqueda,
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                  ),
+                ),
               ),
-            ),
+
+              // CONTADOR DE RESULTADOS
+              if (_isSearching && _equiposFiltrados.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${_equiposFiltrados.length} resultado${_equiposFiltrados.length != 1 ? 's' : ''}',
+                        style: const TextStyle(color: neon, fontSize: 12),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: _limpiarBusqueda,
+                        child: const Text(
+                          'Limpiar',
+                          style: TextStyle(color: neon, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (_isSearching && _equiposFiltrados.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(40),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.search_off, color: Colors.white38, size: 60),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No se encontraron equipos con "${_searchController.text}"',
+                        style: const TextStyle(color: Colors.white38),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+
+              // LISTA DE EQUIPOS
+              Expanded(
+                child: _equiposFiltrados.isEmpty && !_isSearching
+                    ? FutureBuilder<List<EquipoModel>>(
+                        future: _equiposFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(color: neon),
+                            );
+                          }
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.sports_soccer,
+                                    size: 64,
+                                    color: Colors.white24,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Sin equipos creados',
+                                    style: TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Toca el + para agregar tu primer equipo',
+                                    style: TextStyle(
+                                      color: Colors.white30,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return _buildListaEquipos(snapshot.data!);
+                        },
+                      )
+                    : _buildListaEquipos(_equiposFiltrados),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // 🎴 CARD DEL EQUIPO (con Key única)
+  Widget _buildListaEquipos(List<EquipoModel> equipos) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          ...equipos.map((equipo) => _buildCard(equipo)).toList(),
+          const SizedBox(height: 80),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCard(EquipoModel equipo) {
     Color colorPrimario = _hexToColor(equipo.colorPrincipal);
     Color colorSecundario = _hexToColor(equipo.colorSecundario);
@@ -306,9 +380,7 @@ class _EquipoListScreenState extends State<EquipoListScreen>
     final bool estaDeshabilitado = !equipo.habilitado;
 
     return Container(
-      key: ValueKey(
-        equipo.id,
-      ), // ✅ CLAVE ÚNICA para evitar errores de reutilización
+      key: ValueKey(equipo.id),
       margin: const EdgeInsets.only(bottom: 22),
       decoration: BoxDecoration(
         color: cardColor,
@@ -322,7 +394,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🎨 COLORES DEL EQUIPO (PREVIEW) con overlay si está deshabilitado
           Stack(
             children: [
               Container(
@@ -362,7 +433,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                         ),
                       ),
               ),
-              // Overlay si está deshabilitado
               if (estaDeshabilitado)
                 Container(
                   height: 80,
@@ -378,14 +448,11 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                 ),
             ],
           ),
-
-          // 📝 INFO DEL EQUIPO
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nombre y badge de estado
                 Row(
                   children: [
                     Expanded(
@@ -403,7 +470,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                         ),
                       ),
                     ),
-                    // Badge de estado
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -431,8 +497,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                   'Modalidad: ${equipo.cantidad}',
                   style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
-                const SizedBox(height: 6),
-                // Mostrar razón si está deshabilitado
                 if (estaDeshabilitado && equipo.habilitadoDescripcion != null)
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -465,42 +529,15 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                       ],
                     ),
                   ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: colorPrimario,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.white12),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: colorSecundario,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.white12),
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 14),
-
-                // 🔘 BOTONES DE ACCIÓN
                 Row(
                   children: [
-                    // TOGGLE HABILITAR/DESHABILITAR
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: estaDeshabilitado
-                              ? enabledBadgeColor // Verde para habilitar
-                              : disabledBadgeColor, // Rojo para deshabilitar
+                              ? enabledBadgeColor
+                              : disabledBadgeColor,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
@@ -525,7 +562,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // EDITAR
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -545,7 +581,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // ELIMINAR
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -574,7 +609,6 @@ class _EquipoListScreenState extends State<EquipoListScreen>
     );
   }
 
-  // 🎨 CONVERTIR HEX A COLOR
   Color _hexToColor(String hex) {
     hex = hex.replaceAll('#', '');
     return Color(int.parse('FF$hex', radix: 16));

@@ -21,53 +21,152 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
 
   Color colorPrimario = const Color(0xFF6EE7B7);
   Color colorSecundario = const Color(0xFF1A1A1E);
-  String cantidad = "5v5"; // Modalidad de campo (5, 7, 11)
+  String cantidad = "5v5";
+
+  bool _isLoading = false;
+  List<EquipoModel> _equiposExistentes = [];
 
   bool get editando => widget.equipo != null;
 
   @override
   void initState() {
     super.initState();
-
     nombreController = TextEditingController(text: widget.equipo?.nombre ?? '');
-    logoController = TextEditingController(
-      text: widget.equipo?.escudoUrl ?? '',
-    );
+    logoController = TextEditingController(text: widget.equipo?.escudoUrl ?? '');
 
     if (widget.equipo != null) {
       colorPrimario = _hexToColor(widget.equipo!.colorPrincipal);
       colorSecundario = _hexToColor(widget.equipo!.colorSecundario);
       cantidad = widget.equipo!.cantidad;
     }
+    
+    _cargarEquiposExistentes();
+  }
+
+  Future<void> _cargarEquiposExistentes() async {
+    _equiposExistentes = await _service.obtenerEquipos();
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    nombreController.dispose();
+    logoController.dispose();
+    super.dispose();
+  }
+
+  // 🔍 VALIDACIÓN DE NOMBRE DUPLICADO CON LÍMITE DE 50
+  String? _validarNombre(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'El nombre del equipo es requerido';
+    }
+    if (value.length < 3) {
+      return 'Mínimo 3 caracteres';
+    }
+    if (value.length > 50) {
+      return 'Máximo 50 caracteres';
+    }
+    
+    final nombreNormalizado = value.trim().toLowerCase();
+    
+    if (editando) {
+      // EDITAR: excluir el equipo actual
+      final existe = _equiposExistentes.any((equipo) => 
+        equipo.id != widget.equipo!.id &&
+        equipo.nombre.trim().toLowerCase() == nombreNormalizado
+      );
+      if (existe) {
+        return 'El nombre del equipo ya se encuentra registrado previamente, utilice uno diferente';
+      }
+    } else {
+      // CREAR: verificar contra todos
+      final existe = _equiposExistentes.any((equipo) => 
+        equipo.nombre.trim().toLowerCase() == nombreNormalizado
+      );
+      if (existe) {
+        return 'El nombre del equipo ya se encuentra registrado previamente, utilice uno diferente';
+      }
+    }
+    
+    return null;
   }
 
   Future<void> guardarEquipo() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (editando) {
-      // EDITAR - usar constructor normal con id
-      final equipo = EquipoModel(
-        id: widget.equipo!.id,
-        nombre: nombreController.text.trim(),
-        escudoUrl: logoController.text.trim(),
-        colorPrincipal: _colorToHex(colorPrimario),
-        colorSecundario: _colorToHex(colorSecundario),
-        cantidad: cantidad,
-      );
-      await _service.actualizarEquipo(equipo);
-    } else {
-      // CREAR - usar constructor especial para nuevos
-      final equipo = EquipoModel.nuevo(
-        nombre: nombreController.text.trim(),
-        escudoUrl: logoController.text.trim(),
-        colorPrincipal: _colorToHex(colorPrimario),
-        colorSecundario: _colorToHex(colorSecundario),
-        cantidad: cantidad,
-      );
-      await _service.crearEquipo(equipo);
-    }
+    setState(() => _isLoading = true);
 
-    if (mounted) Navigator.pop(context, true);
+    try {
+      if (editando) {
+        // EDITAR
+        final equipo = EquipoModel(
+          id: widget.equipo!.id,
+          nombre: nombreController.text.trim(),
+          escudoUrl: logoController.text.trim().isEmpty
+              ? null
+              : logoController.text.trim(),
+          colorPrincipal: _colorToHex(colorPrimario),
+          colorSecundario: _colorToHex(colorSecundario),
+          cantidad: cantidad,
+        );
+        await _service.actualizarEquipo(equipo);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '✅ Equipo actualizado exitosamente',
+                style: TextStyle(fontSize: 14),
+              ),
+              backgroundColor: Color(0xFF34D399),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        // CREAR
+        final equipo = EquipoModel.nuevo(
+          nombre: nombreController.text.trim(),
+          escudoUrl: logoController.text.trim().isEmpty
+              ? null
+              : logoController.text.trim(),
+          colorPrincipal: _colorToHex(colorPrimario),
+          colorSecundario: _colorToHex(colorSecundario),
+          cantidad: cantidad,
+        );
+        await _service.crearEquipo(equipo);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '✅ Equipo creado exitosamente',
+                style: TextStyle(fontSize: 14),
+              ),
+              backgroundColor: Color(0xFF34D399),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '❌ Error al ${editando ? "actualizar" : "crear"} el equipo: $e',
+              style: const TextStyle(fontSize: 14),
+            ),
+            backgroundColor: Colors.red.shade600,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Color _hexToColor(String hex) {
@@ -144,6 +243,9 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
                   ),
                   const SizedBox(height: 30),
 
+                  // ============================================
+                  // NOMBRE DEL EQUIPO - CON LÍMITE DE 50 CARACTERES
+                  // ============================================
                   const Text(
                     "Nombre del Equipo *",
                     style: TextStyle(color: Colors.white70),
@@ -152,12 +254,28 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
                   TextFormField(
                     controller: nombreController,
                     style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration("Ej: Los Halcones"),
-                    validator: (v) => v!.isEmpty ? 'Ingresa el nombre' : null,
+                    decoration: _inputDecoration("Ej: Los Halcones (máx. 50 caracteres)"),
+                    maxLength: 50,
+                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                    validator: _validarNombre,
+                  ),
+                  const SizedBox(height: 30),
+
+                  // URL DEL ESCUDO
+                  const Text(
+                    "URL del Escudo (opcional)",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: logoController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _inputDecoration("https://ejemplo.com/escudo.png"),
                   ),
 
                   const SizedBox(height: 30),
 
+                  // COLORES
                   Row(
                     children: [
                       Expanded(
@@ -186,6 +304,7 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
 
                   const SizedBox(height: 30),
 
+                  // MODALIDAD
                   const Text(
                     "Modalidad de Campo *",
                     style: TextStyle(color: Colors.white70),
@@ -209,28 +328,53 @@ class _NuevoEquipoScreenState extends State<NuevoEquipoScreen> {
 
                   const SizedBox(height: 40),
 
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: ElevatedButton(
-                      onPressed: guardarEquipo,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF34D399),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 30,
-                          vertical: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        editando ? "Actualizar Equipo" : "Guardar Equipo",
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
+                  // BOTONES
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isLoading ? null : () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white54,
+                            side: const BorderSide(color: Colors.white24),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Cancelar'),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : guardarEquipo,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF34D399),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.black,
+                                  ),
+                                )
+                              : Text(
+                                  editando ? "Actualizar Equipo" : "Guardar Equipo",
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
