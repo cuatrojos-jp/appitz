@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../services/partido_service.dart';
 import '../models/partido_model.dart';
 import '../widgets/show_snackbar.dart';
+import 'partido_detail_screen.dart';
 
 class PartidosListScreen extends StatefulWidget {
   const PartidosListScreen({super.key});
@@ -504,207 +505,219 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
         partido.estadoCodigo != 'finalizado' &&
         partido.estadoCodigo != 'suspendido';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PartidoDetailScreen(partido: partido),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header: fecha, hora y estado
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today,
-                    color: AppTheme.primaryColor,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _formatearFecha(partido.fechaHora),
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                  const SizedBox(width: 12),
-                  const Icon(
-                    Icons.location_on,
-                    color: AppTheme.primaryColor,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    partido.campoNombre,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: estadoColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  estadoLabel,
-                  style: TextStyle(
-                    color: estadoColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Equipos
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.borderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: fecha, hora y estado
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                Row(
                   children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: AppTheme.secondaryColor,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.shield,
-                        color: AppTheme.primaryColor,
-                        size: 28,
-                      ),
+                    const Icon(
+                      Icons.calendar_today,
+                      color: AppTheme.primaryColor,
+                      size: 14,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(width: 6),
                     Text(
-                      partido.equipoLocalNombre,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      _formatearFecha(partido.fechaHora),
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.location_on,
+                      color: AppTheme.primaryColor,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      partido.campoNombre,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ],
                 ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'VS',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: estadoColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    estadoLabel,
+                    style: TextStyle(
+                      color: estadoColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: AppTheme.secondaryColor,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.shield,
-                        color: AppTheme.primaryColor,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      partido.equipoVisitanteNombre,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-          const SizedBox(height: 16),
-
-          // Categoría (si tiene)
-          if (partido.categoriaId != null &&
-              partido.categoriaNombre != 'Amistoso')
+            // Equipos
             Row(
               children: [
-                const Icon(
-                  Icons.category,
-                  color: AppTheme.mutedForegroundColor,
-                  size: 12,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.shield,
+                          color: AppTheme.primaryColor,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        partido.equipoLocalNombre,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  partido.categoriaNombre,
-                  style: const TextStyle(
-                    color: AppTheme.mutedForegroundColor,
-                    fontSize: 12,
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'VS',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.shield,
+                          color: AppTheme.primaryColor,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        partido.equipoVisitanteNombre,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Botones de acción
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (puedeCambiarEstado)
-                _buildActionButton(
-                  icon: Icons.swap_horiz,
-                  color: Colors.orange,
-                  onTap: () => _mostrarMenuEstados(partido),
-                ),
-              const SizedBox(width: 8),
-              _buildActionButton(
-                icon: Icons.edit_outlined,
-                color: AppTheme.primaryColor,
-                onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PartidoFormScreen(partido: partido),
+            // Categoría (si tiene)
+            if (partido.categoriaId != null &&
+                partido.categoriaNombre != 'Amistoso')
+              Row(
+                children: [
+                  const Icon(
+                    Icons.category,
+                    color: AppTheme.mutedForegroundColor,
+                    size: 12,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    partido.categoriaNombre,
+                    style: const TextStyle(
+                      color: AppTheme.mutedForegroundColor,
+                      fontSize: 12,
                     ),
-                  );
-                  if (result == true) {
-                    _cargarPartidos();
-                  }
-                },
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              _buildActionButton(
-                icon: Icons.delete_outline,
-                color: Colors.redAccent,
-                onTap: () => _eliminarPartido(partido),
-              ),
-            ],
-          ),
-        ],
+
+            const SizedBox(height: 16),
+
+            // Botones de acción
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (puedeCambiarEstado)
+                  _buildActionButton(
+                    icon: Icons.swap_horiz,
+                    color: Colors.orange,
+                    onTap: () => _mostrarMenuEstados(partido),
+                  ),
+                const SizedBox(width: 8),
+                _buildActionButton(
+                  icon: Icons.edit_outlined,
+                  color: AppTheme.primaryColor,
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            PartidoFormScreen(partido: partido),
+                      ),
+                    );
+                    if (result == true) {
+                      _cargarPartidos();
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildActionButton(
+                  icon: Icons.delete_outline,
+                  color: Colors.redAccent,
+                  onTap: () => _eliminarPartido(partido),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
