@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import '../screens/partidos_list_screen.dart';
+import 'dart:io';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -134,8 +135,30 @@ class NotificationService {
     }
   }
 
-  Future<String?> getFCMToken() async {
-    return await FirebaseMessaging.instance.getToken();
+  Future<String?> getFCMToken({int maxAttempts = 3}) async {
+    if (Platform.isIOS) {
+      for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+
+        if (apnsToken != null) {
+          debugPrint("✅ APNS Token obtenido en intento #$attempt: $apnsToken");
+          // 2. Una vez que APNS está listo, obtenemos el token FCM
+          return await FirebaseMessaging.instance.getToken();
+        } else {
+          debugPrint("⚠️ Intento #$attempt: APNS Token es nulo. Esperando 2 segundos...");
+          if (attempt == maxAttempts) {
+            // Último intento fallido, intentamos obtener el token FCM directamente como último recurso
+            debugPrint("⚠️ Falló obtener APNS Token. Intentando obtener FCM Token directamente...");
+            return await FirebaseMessaging.instance.getToken();
+          }
+          await Future.delayed(const Duration(seconds: 2));
+        }
+      }
+    } else {
+      // Android no tiene este problema
+      return await FirebaseMessaging.instance.getToken();
+    }
+    return null;
   }
 
   Future<void> refreshToken() async {

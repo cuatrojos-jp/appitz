@@ -150,22 +150,15 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
         content: Text(
           '¿Eliminar el partido entre ${partido.equipoLocalNombre} y ${partido.equipoVisitanteNombre}?',
         ),
-        // En el AppBar, reemplaza el actions actual
         actions: [
-          IconButton(
-            icon: const Icon(Icons.send, color: Colors.white),
-            tooltip: 'Enviar rol',
-            onPressed: _enviandoRol ? null : _enviarRol,
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
           ),
-          IconButton(
-            icon: const Icon(Icons.add, color: AppTheme.primaryColor),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PartidoFormScreen()),
-              );
-              if (result == true) _cargarPartidos();
-            },
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
@@ -230,6 +223,13 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
         backgroundColor: AppTheme.backgroundColorAlt,
         elevation: 0,
         actions: [
+          // Botón enviar rol
+          IconButton(
+            icon: const Icon(Icons.send, color: AppTheme.primaryColor),
+            tooltip: 'Enviar rol semanal',
+            onPressed: _enviandoRol ? null : _enviarRol,
+          ),
+          // Botón agregar partido
           IconButton(
             icon: const Icon(Icons.add, color: AppTheme.primaryColor),
             onPressed: () async {
