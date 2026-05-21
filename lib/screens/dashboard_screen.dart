@@ -1,10 +1,8 @@
+// lib/screens/dashboard_screen.dart
 import 'package:appitz/screens/jugador_list_screen.dart';
-//import 'package:appitz/screens/temporadas_list_screen.dart';
-import '../services/dispositivo_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../services/notification_service.dart';
+import 'package:appitz/screens/bandeja_screen.dart';
+import '../services/bandeja_service.dart';
 import '../services/auth_service.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dashboard_card.dart';
@@ -16,14 +14,144 @@ import 'categorias_list_screen.dart';
 import 'campos_list_screen.dart';
 import 'partidos_list_screen.dart';
 import 'equipo_list_screen.dart';
+import 'configuracion_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   final String rolId;
   const DashboardScreen({super.key, required this.rolId});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final AuthService _authService = AuthService();
+  final BandejaService _bandejaService = BandejaService();
+  final GlobalKey<BandejaScreenState> _bandejaKey = GlobalKey();
+
+  int _selectedIndex = 0;
+  bool _tieneNoLeidas = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _verificarNoLeidas();
+  }
+
+  Future<void> _verificarNoLeidas() async {
+    final usuarioId = await _authService.getUsuarioId();
+    if (usuarioId == null) return;
+
+    final count = await _bandejaService.contarNoLeidas(usuarioId);
+    if (mounted) {
+      setState(() => _tieneNoLeidas = count > 0);
+    }
+  }
+
+  void _onItemTapped(int index) {
+    if (index == 2) {
+      _navigateTo(context, ConfiguracionScreen());
+      return;
+    }
+    setState(() => _selectedIndex = index);
+
+    // Al abrir bandeja, refrescar el indicador al volver
+    if (index == 1) {
+      _bandejaKey.currentState?.cargarNotificaciones();
+      Future.delayed(const Duration(milliseconds: 300), _verificarNoLeidas);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final esAdmin = rolId == 'a0d38955-fa67-4751-a36b-777fcf4d8ed9';
+    final esAdmin = widget.rolId == 'a0d38955-fa67-4751-a36b-777fcf4d8ed9';
+
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          _buildDashboard(esAdmin),
+          BandejaScreen(
+            key: _bandejaKey,
+            onNotificacionLeida: _verificarNoLeidas
+            ),
+          const ConfiguracionScreen(),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: AppTheme.borderColor, width: 1),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          backgroundColor: AppTheme.backgroundColorAlt,
+          selectedItemColor: AppTheme.primaryColor,
+          unselectedItemColor: AppTheme.mutedForegroundColor,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+          items: [
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Inicio',
+            ),
+            BottomNavigationBarItem(
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.notifications_outlined),
+                  // if (_tieneNoLeidas)
+                  //   Positioned(
+                  //     top: -2,
+                  //     right: -2,
+                  //     child: Container(
+                  //       width: 8,
+                  //       height: 8,
+                  //       decoration: const BoxDecoration(
+                  //         color: AppTheme.primaryColor,
+                  //         shape: BoxShape.circle,
+                  //       ),
+                  //     ),
+                  //   ),
+                ],
+              ),
+              activeIcon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.notifications),
+                  // if (_tieneNoLeidas)
+                  //   Positioned(
+                  //     top: -2,
+                  //     right: -2,
+                  //     child: Container(
+                  //       width: 8,
+                  //       height: 8,
+                  //       decoration: const BoxDecoration(
+                  //         color: AppTheme.primaryColor,
+                  //         shape: BoxShape.circle,
+                  //       ),
+                  //     ),
+                  //   ),
+                ],
+              ),
+              label: 'Bandeja',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings),
+              label: 'Configuración',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboard(bool esAdmin) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -41,7 +169,6 @@ class DashboardScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              // Volver al login
               _navigateTo(context, const LoginScreen());
             },
           ),
@@ -52,11 +179,8 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             const DashboardHeader(),
             const SizedBox(height: 24),
-
-            // Grid de tarjetas
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
@@ -105,11 +229,6 @@ class DashboardScreen extends StatelessWidget {
                     icon: Icons.event,
                     color: Colors.brown,
                     onTap: () => _navigateTo(context, TemporadaScreen()),
-                  ),
-                  DashboardCard(
-                    title: "Configuración",
-                    icon: Icons.settings,
-                    color: Colors.grey,
                   ),
                   if (esAdmin) ...[
                     DashboardCard(
