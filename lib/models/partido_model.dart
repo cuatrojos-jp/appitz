@@ -9,6 +9,7 @@ class PartidoModel {
   final String equipoVisitanteNombre;
   final String campoId;
   final String campoNombre;
+  final String campoCantidad;
   final String estadoId;
   final String estadoCodigo;
   final DateTime fechaHora;
@@ -26,6 +27,7 @@ class PartidoModel {
     required this.equipoVisitanteNombre,
     required this.campoId,
     required this.campoNombre,
+    required this.campoCantidad,
     required this.estadoId,
     required this.estadoCodigo,
     required this.fechaHora,
@@ -45,6 +47,7 @@ class PartidoModel {
       equipoVisitanteNombre: json['equipos_visitante']?['nombre'] as String? ?? 'Desconocido',
       campoId: json['campo_id'] as String,
       campoNombre: json['campos']?['nombre'] as String? ?? 'Sin campo',
+      campoCantidad: json['campos']?['cantidad'] as String? ?? '5v5',
       estadoId: json['estado_id'] as String,
       estadoCodigo: json['estados_partido']?['codigo'] as String? ?? 'programado',
       fechaHora: DateTime.parse(json['fecha_hora'] as String),

@@ -3,6 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import '../screens/partidos_list_screen.dart';
 import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dispositivo_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -145,10 +147,14 @@ class NotificationService {
           // 2. Una vez que APNS está listo, obtenemos el token FCM
           return await FirebaseMessaging.instance.getToken();
         } else {
-          debugPrint("⚠️ Intento #$attempt: APNS Token es nulo. Esperando 2 segundos...");
+          debugPrint(
+            "⚠️ Intento #$attempt: APNS Token es nulo. Esperando 2 segundos...",
+          );
           if (attempt == maxAttempts) {
             // Último intento fallido, intentamos obtener el token FCM directamente como último recurso
-            debugPrint("⚠️ Falló obtener APNS Token. Intentando obtener FCM Token directamente...");
+            debugPrint(
+              "⚠️ Falló obtener APNS Token. Intentando obtener FCM Token directamente...",
+            );
             return await FirebaseMessaging.instance.getToken();
           }
           await Future.delayed(const Duration(seconds: 2));
@@ -165,5 +171,30 @@ class NotificationService {
     await FirebaseMessaging.instance.deleteToken();
     final newToken = await FirebaseMessaging.instance.getToken();
     print('🔄 Token refrescado: $newToken');
+  }
+
+  Future<bool> getNotificacionesActivas() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('notificaciones_activas') ?? true;
+  }
+
+  Future<void> desactivarNotificaciones(String usuarioId) async {
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token != null) {
+      await DispositivoService().eliminarToken(token);
+    }
+    await FirebaseMessaging.instance.deleteToken();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notificaciones_activas', false);
+  }
+
+  Future<void> activarNotificaciones(String usuarioId) async {
+    // Regenerar token (deleteToken lo invalidó)
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token != null) {
+      await DispositivoService().guardarToken(usuarioId, token);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notificaciones_activas', true);
   }
 }
