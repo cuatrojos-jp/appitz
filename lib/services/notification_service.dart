@@ -31,31 +31,28 @@ class NotificationService {
   ) {}
 
   Future<void> initialize() async {
+    // Inicializar notificaciones locales (funciona en ambas plataformas)
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-
     const DarwinInitializationSettings iosSettings =
-        DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        );
-
+        DarwinInitializationSettings();
     const InitializationSettings settings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
     );
-
     await _localNotifications.initialize(
       settings: settings,
       onDidReceiveNotificationResponse: _onNotificationTap,
-      onDidReceiveBackgroundNotificationResponse:
-          onDidReceiveBackgroundNotificationResponse,
     );
 
-    await _requestPermissions();
-    _setupFCMHandlers(); // Solo aquí, no duplicar en setupInteractedMessage
-    _printToken();
+    // Solo Android: solicitar permisos y configurar FCM
+    if (Platform.isAndroid) {
+      await _requestPermissions();
+      _setupFCMHandlers();
+      _printToken();
+    } else {
+      print('📱 iOS: Notificaciones push deshabilitadas (sin APNS)');
+    }
   }
 
   Future<void> _requestPermissions() async {
@@ -137,34 +134,29 @@ class NotificationService {
     }
   }
 
-  Future<String?> getFCMToken({int maxAttempts = 3}) async {
-    if (Platform.isIOS) {
-      for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-        String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+  // Future<String?> getFCMToken({int maxAttempts = 3}) async {
+  //   if (Platform.isIOS) {
+  //     print('📱 iOS: FCM token no solicitado (APNS no configurado)');
+  //     return null;
+  //   } else {
+  //     // Android no tiene este problema
+  //     return await FirebaseMessaging.instance.getToken();
+  //   }
+  // }
 
-        if (apnsToken != null) {
-          debugPrint("✅ APNS Token obtenido en intento #$attempt: $apnsToken");
-          // 2. Una vez que APNS está listo, obtenemos el token FCM
-          return await FirebaseMessaging.instance.getToken();
-        } else {
-          debugPrint(
-            "⚠️ Intento #$attempt: APNS Token es nulo. Esperando 2 segundos...",
-          );
-          if (attempt == maxAttempts) {
-            // Último intento fallido, intentamos obtener el token FCM directamente como último recurso
-            debugPrint(
-              "⚠️ Falló obtener APNS Token. Intentando obtener FCM Token directamente...",
-            );
-            return await FirebaseMessaging.instance.getToken();
-          }
-          await Future.delayed(const Duration(seconds: 2));
-        }
-      }
-    } else {
-      // Android no tiene este problema
-      return await FirebaseMessaging.instance.getToken();
+  Future<String?> getFCMToken({
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    if (Platform.isIOS) {
+      print('📱 iOS: FCM token no solicitado');
+      return null;
     }
-    return null;
+    try {
+      return await FirebaseMessaging.instance.getToken().timeout(timeout);
+    } catch (e) {
+      print('⏰ Timeout o error al obtener FCM token: $e');
+      return null;
+    }
   }
 
   Future<void> refreshToken() async {
