@@ -21,6 +21,8 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
   final AuthService _authService = AuthService();
 
   List<EventoModel> _eventos = [];
+  List<EventoModel> get _eventosMostrados =>
+      _eventos.where((e) => e.golLocal == true || e.golLocal == null).toList();
   bool _isLoading = true;
   bool _esCoordinador = false;
 
@@ -38,11 +40,10 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
     setState(() => _isLoading = true);
 
     // Verificar rol del usuario actual
-    final authId = _authService.getCurrentUserId();
-    if (authId != null) {
-      final rolId = await _authService.getRolId(authId);
-      _esCoordinador = rolId == _rolCoordinadorId;
-    }
+    Future<String?> usuarioId = _authService.getUsuarioId();
+    String usuarioIdString = await usuarioId ?? '';
+    final rolId = await _authService.getRolId(usuarioIdString);
+    _esCoordinador = rolId == _rolCoordinadorId;
 
     final eventos = await _eventoService.obtenerEventosPorPartido(
       widget.partido.id,
@@ -52,6 +53,44 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
       _eventos = eventos;
       _isLoading = false;
     });
+  }
+
+  // ── Eliminar evento ──────────────────────────────────────
+
+  Future<void> _eliminarEvento(EventoModel evento) async {
+    await _eventoService.eliminarEventoPorGrupoId(evento.id);
+    await _cargarDatos();
+  }
+
+  Future<void> _confirmarEliminarEvento(EventoModel evento) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor,
+        title: const Text(
+          'Eliminar evento',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          '¿Eliminar el evento de ${evento.jugadorNombre} en el minuto ${evento.minuto}?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await _eliminarEvento(evento);
+    }
   }
 
   // ── Marcador calculado desde eventos ──────────────────────
@@ -222,7 +261,7 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${_eventos.length}',
+                          '${_eventosMostrados.length}',
                           style: const TextStyle(
                             color: AppTheme.mutedForegroundColor,
                             fontSize: 13,
@@ -246,8 +285,8 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
                         sliver: SliverList(
                           delegate: SliverChildBuilderDelegate(
                             (context, index) =>
-                                _buildEventoRow(_eventos[index]),
-                            childCount: _eventos.length,
+                                _buildEventoRow(_eventosMostrados[index]),
+                            childCount: _eventosMostrados.length,
                           ),
                         ),
                       ),
@@ -517,6 +556,19 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
             ),
             textAlign: TextAlign.right,
           ),
+
+          // Botón de eliminar
+          if (_esCoordinador)
+            IconButton(
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 18,
+                color: Colors.redAccent,
+              ),
+              onPressed: () => _confirmarEliminarEvento(evento),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
         ],
       ),
     );

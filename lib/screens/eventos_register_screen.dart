@@ -5,6 +5,8 @@ import '../theme/app_theme.dart';
 import '../models/partido_model.dart';
 import '../services/evento_service.dart';
 import '../services/auth_service.dart';
+import '../models/evento_model.dart';
+import 'package:uuid/uuid.dart';
 
 // ── Tipos de evento (hardcoded para evitar queries extra) ──────────────────
 // Sincronizar con UUIDs reales de la tabla tipos_evento
@@ -64,10 +66,13 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
   List<Map<String, dynamic>> _tiposEvento = [];
   List<Map<String, dynamic>> _jugadoresLocal = [];
   List<Map<String, dynamic>> _jugadoresVisitante = [];
+  List<EventoModel> _eventosExistentes = [];
   List<Map<String, dynamic>> get _todosLosJugadores => [
     ..._jugadoresLocal,
     ..._jugadoresVisitante,
   ];
+
+  final uuid = Uuid();
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -122,6 +127,13 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
     _filas = [_EventoFila()];
 
     setState(() => _isLoading = false);
+
+    final eventosExistentes = await _eventoService.obtenerEventosPorPartido(
+      widget.partido.id,
+    );
+    setState(() {
+      _eventosExistentes = eventosExistentes;
+    });
   }
 
   // ── Agregar / eliminar filas ───────────────────────────────────────────
@@ -159,6 +171,13 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
         return fila.minuto;
       }
     }
+    for (final evento in _eventosExistentes) {
+      if (evento.jugadorId == jugadorId &&
+          evento.tipoCodigo == 'tarjeta_roja' &&
+          evento.minuto != null) {
+        return evento.minuto;
+      }
+    }
     return null;
   }
 
@@ -173,6 +192,26 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
       }
     }
     return null;
+  }
+
+  /// Cuenta tarjetas amarillas de un jugador entre filas actuales
+  /// y eventos ya existentes del partido
+  int _contarTarjetasAmarillas(String jugadorId) {
+    // Filas del formulario actual
+    final enFormulario = _filas
+        .where(
+          (f) => f.jugadorId == jugadorId && f.tipoCodigo == 'tarjeta_amarilla',
+        )
+        .length;
+
+    // Eventos ya guardados en BD
+    final enBD = _eventosExistentes
+        .where(
+          (e) => e.jugadorId == jugadorId && e.tipoCodigo == 'tarjeta_amarilla',
+        )
+        .length;
+
+    return enFormulario + enBD;
   }
 
   /// Verifica si un jugador puede ser registrado como autor de un evento
@@ -201,6 +240,15 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
       if (fila.tipoEventoId == null) {
         errores.add('Fila $num: selecciona el tipo de evento.');
         continue;
+      }
+      if (fila.tipoCodigo == 'tarjeta_amarilla') {
+        final amarillas = _contarTarjetasAmarillas(fila.jugadorId!);
+        if (amarillas >= 3) {
+          errores.add(
+            'Fila $num: ${fila.jugadorNombre} ya tiene 2 tarjetas amarillas. '
+            'La siguiente infracción debe ser tarjeta roja.'
+          );
+        }
       }
       if (fila.minuto == null) {
         errores.add('Fila $num: ingresa el minuto.');
@@ -242,10 +290,53 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
     return errores;
   }
 
+  // Colores, labels e iconos para los tipos de eventos
+  Color _colorPorTipo(String codigo) {
+    switch (codigo) {
+      case 'gol':
+        return Colors.green;
+      case 'autogol':
+        return Colors.red;
+      case 'asistencia':
+        return Colors.lightGreen;
+      case 'tarjeta_amarilla':
+        return Colors.amber;
+      case 'tarjeta_roja':
+        return Colors.red;
+      case 'sustitucion':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _labelPorTipo(String codigo) {
+    switch (codigo) {
+      case 'gol':
+        return 'Gol';
+      case 'autogol':
+        return 'Autogol';
+      case 'asistencia':
+        return 'Asistencia';
+      case 'tarjeta_amarilla':
+        return 'Tarjeta amarilla';
+      case 'tarjeta_roja':
+        return 'Tarjeta roja';
+      case 'sustitucion':
+        return 'Sustitución';
+      default:
+        return codigo;
+    }
+  }
+
   // ── Construir payload para insert ────────────────────────────────────────
+
+  // Asegúrate de importar el paquete uuid en la parte superior del archivo:
+  // import 'package:uuid/uuid.dart';
 
   List<Map<String, dynamic>> _construirPayload() {
     final registros = <Map<String, dynamic>>[];
+    final uuid = Uuid(); // ← Generador de UUIDs
 
     for (final fila in _filas) {
       final minuto = fila.minuto!;
@@ -253,18 +344,7 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
       final equipoId = fila.equipoId!;
       final esLocal = equipoId == widget.partido.equipoLocalId;
 
-      // Determinar si el gol es válido para estadísticas del jugador:
-      // inválido si el jugador recibió tarjeta roja DESPUÉS de este gol
-      bool validoParaJugador = true;
-      if (fila.tipoCodigo == 'gol' || fila.tipoCodigo == 'asistencia') {
-        final minutoRoja = _minutoTarjetaRoja(jugadorId);
-        if (minutoRoja != null && minutoRoja > minuto) {
-          // Gol antes de roja → no cuenta para stats del jugador
-          validoParaJugador = false;
-        }
-      }
-
-      // Base del registro
+      // Base del registro (sin el campo valido_para_estadisticas_jugador)
       final base = {
         'partido_id': widget.partido.id,
         'tipo_evento_id': fila.tipoEventoId,
@@ -274,39 +354,45 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
         'equipo_id': equipoId,
         'registrado_por': _usuarioId,
         'temporada_id': widget.partido.categoriaId,
-        'valido_para_estadisticas_jugador': validoParaJugador,
       };
 
       switch (fila.tipoCodigo) {
         case 'gol':
-        case 'asistencia':
-          // Registro 1: equipo que anotó — golLocal = true
-          registros.add({...base, 'golLocal': true});
-          // Registro 2: equipo rival — golLocal = false (recibió el gol)
-          final equipoRivalId = esLocal
+        case 'autogol':
+          // Generar un ID de grupo único para el par de eventos (gol o autogol)
+          final grupoGolId = uuid.v4();
+
+          // Primer registro: el equipo involucrado (quien anota o comete autogol)
+          // Para 'gol' → golLocal = true, para 'autogol' → golLocal = false
+          final golLocalPrimero = (fila.tipoCodigo == 'gol');
+          registros.add({
+            ...base,
+            'golLocal': golLocalPrimero,
+            'grupo_gol_id': grupoGolId,
+          });
+
+          // Segundo registro: equipo contrario (recibe el gol o se beneficia del autogol)
+          final equipoContrarioId = esLocal
               ? widget.partido.equipoVisitanteId
               : widget.partido.equipoLocalId;
           registros.add({
             ...base,
-            'equipo_id': equipoRivalId,
-            'golLocal': false,
-            'valido_para_estadisticas_jugador':
-                true, // para el equipo rival siempre aplica
+            'equipo_id': equipoContrarioId,
+            'golLocal': !golLocalPrimero, // valor opuesto al primero
+            'grupo_gol_id': grupoGolId,
           });
           break;
 
-        case 'autogol':
-          // Registro 1: equipo que lo cometió — golLocal = false (en su contra)
-          registros.add({...base, 'golLocal': false});
-          // Registro 2: equipo que se benefició — golLocal = true (a su favor)
-          final equipoBeneficiadoId = esLocal
+        case 'asistencia':
+          // La asistencia se duplica (comportamiento original) pero sin grupo_gol_id
+          registros.add({...base, 'golLocal': true});
+          final equipoContrarioId = esLocal
               ? widget.partido.equipoVisitanteId
               : widget.partido.equipoLocalId;
           registros.add({
             ...base,
-            'equipo_id': equipoBeneficiadoId,
-            'golLocal': true,
-            'valido_para_estadisticas_jugador': true,
+            'equipo_id': equipoContrarioId,
+            'golLocal': false,
           });
           break;
 
@@ -414,24 +500,6 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
       return widget.partido.equipoVisitanteNombre;
     }
     return 'Equipo';
-  }
-
-  Color _colorTipo(String? codigo) {
-    switch (codigo) {
-      case 'gol':
-      case 'asistencia':
-        return Colors.green;
-      case 'autogol':
-        return Colors.red;
-      case 'tarjeta_amarilla':
-        return Colors.amber;
-      case 'tarjeta_roja':
-        return Colors.red;
-      case 'sustitucion':
-        return Colors.blue;
-      default:
-        return AppTheme.mutedForegroundColor;
-    }
   }
 
   // ── Build ─────────────────────────────────────────────────────────────
@@ -578,7 +646,7 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: _colorTipo(fila.tipoCodigo),
+                    color: _colorPorTipo(fila.tipoCodigo as String),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -649,9 +717,9 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
                     return DropdownMenuItem<String>(
                       value: t['id'] as String,
                       child: Text(
-                        t['codigo'] as String,
+                        _labelPorTipo(t['codigo'] as String),
                         style: TextStyle(
-                          color: _colorTipo(t['codigo'] as String),
+                          color: _colorPorTipo(t['codigo'] as String),
                           fontSize: 13,
                         ),
                       ),
