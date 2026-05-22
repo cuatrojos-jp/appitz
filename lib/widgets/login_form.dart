@@ -6,7 +6,7 @@ import 'build_password_field.dart';
 import '../utils/error_handler.dart';
 
 class LoginForm extends StatefulWidget {
-  final void Function(String userId,String rolId) onSuccess;
+  final Future<void> Function(String userId, String rolId) onSuccess;
   const LoginForm({super.key, required this.onSuccess});
 
   @override
@@ -40,10 +40,12 @@ class _LoginFormState extends State<LoginForm> {
 
     try {
       final (user, rolId, permisos) = await _authService.login(email, password);
+      print('Login exitoso: ${user.id}, rol: $rolId');
       if (mounted) {
-        widget.onSuccess(user.id, rolId!);
+        await widget.onSuccess(user.id, rolId!);
       }
     } catch (e) {
+      print('Error en login: $e');
       if (mounted) {
         AuthErrorHandler.showErrorSnackBar(context, e); // ← Centralizado
       }
