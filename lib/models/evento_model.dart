@@ -38,9 +38,10 @@ class EventoModel {
       id: json['id'] as String,
       partidoId: json['partido_id'] as String,
       jugadorId: json['jugador_id'] as String?,
-      jugadorNombre: json['jugador']?['nombre'] as String?,
+      jugadorNombre: json['jugador']?['nombre_completo'] as String?,
       jugadorSecundarioId: json['jugador_secundario_id'] as String?,
-      jugadorSecundarioNombre: json['jugador_secundario']?['nombre'] as String?,
+      jugadorSecundarioNombre:
+          json['jugador_secundario']?['nombre_completo'] as String?,
       tipoEventoId: json['tipo_evento_id'] as String,
       tipoCodigo: json['tipos_evento']?['codigo'] as String? ?? '',
       minuto: json['minuto'] as int,
