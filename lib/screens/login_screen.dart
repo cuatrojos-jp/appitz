@@ -1,3 +1,4 @@
+import 'package:appitz/services/auth_service.dart';
 import 'package:appitz/services/dispositivo_service.dart';
 import 'package:appitz/services/notification_service.dart';
 import 'package:appitz/theme/app_theme.dart';
@@ -7,6 +8,7 @@ import '../widgets/glow_blob.dart';
 import 'register_screen.dart';
 import '../widgets/register_logo.dart';
 import '../widgets/login_form.dart';
+import 'dart:io';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -48,18 +50,30 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  void _navigateToDashboard(BuildContext context, String userId, String rolId) async {
-    final fcmToken = await NotificationService().getFCMToken();
-    if (fcmToken!= null && userId.isNotEmpty) {
-      await DispositivoService().guardarToken(userId, fcmToken);
+  Future<void> _navigateToDashboard(
+    BuildContext context,
+    String userId,
+    String rolId,
+  ) async {
+    try {
+      if (Platform.isAndroid) {
+        final fcmToken = await NotificationService().getFCMToken(
+          timeout: Duration(seconds: 10),
+        );
+        if (fcmToken != null && userId.isNotEmpty) {
+          final realUserId = await AuthService().getUsuarioId();
+          await DispositivoService().guardarToken(realUserId!, fcmToken);
+        }
+      }
+    } catch (e) {
+      print('Error con FCM (ignorado): $e');
     }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DashboardScreen(rolId: rolId),
-      ),
-    );
+    if (context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => DashboardScreen(rolId: rolId)),
+      );
+    }
   }
 
   void _navigateToRegister(BuildContext context) {
@@ -110,7 +124,8 @@ class _LoginScreenState extends State<LoginScreen>
                           const RegisterLogo(),
                           const SizedBox(height: 32),
                           LoginForm(
-                            onSuccess: (userId, rolId) => _navigateToDashboard(context, userId, rolId),
+                            onSuccess: (userId, rolId) async =>
+                              await _navigateToDashboard(context, userId, rolId),
                           ),
                           const SizedBox(height: 24),
                           Row(
