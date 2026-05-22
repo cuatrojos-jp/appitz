@@ -1,11 +1,12 @@
-// Representa la estructura de datos de un jugador
+// lib/models/jugador_model.dart
 class JugadorModel {
-  final String? id; // Opcional porque al crear no tiene ID
+  final String? id;
   final String nombreCompleto;
   final DateTime? fechaNacimiento;
   final String? fotoUrl;
   final bool activo;
   final bool estadisticasPublicas;
+  final String? equipoId; // ← NUEVO: ID del equipo
 
   JugadorModel({
     this.id,
@@ -14,9 +15,9 @@ class JugadorModel {
     this.fotoUrl,
     this.activo = true,
     this.estadisticasPublicas = false,
+    this.equipoId, // ← NUEVO
   });
 
-  // Convertir a JSON para enviar a Supabase
   Map<String, dynamic> toJson() {
     return {
       'nombre_completo': nombreCompleto,
@@ -24,10 +25,10 @@ class JugadorModel {
       'foto_url': fotoUrl,
       'activo': activo,
       'estadisticas_publicas': estadisticasPublicas,
+      'equipo_id': equipoId, // ← NUEVO
     };
   }
 
-  // Crear modelo desde JSON (para cuando consultemos)
   factory JugadorModel.fromJson(Map<String, dynamic> json) {
     return JugadorModel(
       id: json['id'],
@@ -38,6 +39,28 @@ class JugadorModel {
       fotoUrl: json['foto_url'],
       activo: json['activo'] ?? true,
       estadisticasPublicas: json['estadisticas_publicas'] ?? false,
+      equipoId: json['equipo_id'], // ← NUEVO
+    );
+  }
+
+  // Método copyWith para actualizar fácilmente
+  JugadorModel copyWith({
+    String? id,
+    String? nombreCompleto,
+    DateTime? fechaNacimiento,
+    String? fotoUrl,
+    bool? activo,
+    bool? estadisticasPublicas,
+    String? equipoId,
+  }) {
+    return JugadorModel(
+      id: id ?? this.id,
+      nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+      fechaNacimiento: fechaNacimiento ?? this.fechaNacimiento,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
+      activo: activo ?? this.activo,
+      estadisticasPublicas: estadisticasPublicas ?? this.estadisticasPublicas,
+      equipoId: equipoId ?? this.equipoId,
     );
   }
 }

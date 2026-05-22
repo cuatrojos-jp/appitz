@@ -1,3 +1,4 @@
+// lib/widgets/jugador_list_tile.dart
 import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
 import '../theme/app_theme.dart';
@@ -6,12 +7,14 @@ class JugadorListTile extends StatelessWidget {
   final JugadorModel jugador;
   final VoidCallback onTap;
   final VoidCallback? onDelete;
+  final Map<String, String>? equiposMap; // ← AGREGAR ESTA LÍNEA
 
   const JugadorListTile({
     super.key,
     required this.jugador,
     required this.onTap,
     this.onDelete,
+    this.equiposMap, // ← AGREGAR ESTA LÍNEA
   });
 
   String _formatearFecha(DateTime? fecha) {
@@ -21,6 +24,10 @@ class JugadorListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ← AGREGAR ESTAS 2 LÍNEAS
+    final equipoNombre = equiposMap?[jugador.equipoId] ?? "Sin equipo";
+    final bool tieneEquipo = jugador.equipoId != null;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       color: Colors.grey[900],
@@ -33,8 +40,14 @@ class JugadorListTile extends StatelessWidget {
       ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppTheme.focusedLabelColor.withValues(alpha: 0.2),
-          child: const Icon(Icons.person, color: AppTheme.focusedLabelColor),
+          // ← MODIFICAR EL COLOR
+          backgroundColor: tieneEquipo 
+              ? AppTheme.focusedLabelColor.withValues(alpha: 0.2)
+              : Colors.grey.withValues(alpha: 0.2),
+          child: Icon(
+            Icons.person,
+            color: tieneEquipo ? AppTheme.focusedLabelColor : Colors.grey,
+          ),
         ),
         title: Text(
           jugador.nombreCompleto,
@@ -43,9 +56,36 @@ class JugadorListTile extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
-        subtitle: Text(
-          _formatearFecha(jugador.fechaNacimiento),
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _formatearFecha(jugador.fechaNacimiento),
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            // ← AGREGAR ESTAS LÍNEAS PARA MOSTRAR EL EQUIPO
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: tieneEquipo ? Colors.green : Colors.grey,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  equipoNombre,
+                  style: TextStyle(
+                    color: tieneEquipo ? Colors.green : Colors.grey,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
