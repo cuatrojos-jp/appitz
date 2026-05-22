@@ -11,8 +11,8 @@ class EventoService {
         .from('eventos_partido')
         .select('''
           *,
-          jugador:jugadores!eventos_partido_jugador_id_fkey(id, nombre),
-          jugador_secundario:jugadores!eventos_partido_jugador_secundario_id_fkey(id, nombre),
+          jugador:jugadores!eventos_partido_jugador_id_fkey(id, nombre_completo),
+          jugador_secundario:jugadores!eventos_partido_jugador_secundario_id_fkey(id, nombre_completo),
           tipos_evento(id, codigo, afecta_marcador, requiere_jugador_secundario)
         ''')
         .eq('partido_id', partidoId)
@@ -30,7 +30,7 @@ class EventoService {
         .from('jugadores_equipos')
         .select('''
           equipo_id,
-          jugadores!inner(id, nombre)
+          jugadores!inner(id, nombre_completo)
         ''')
         .inFilter('equipo_id', [equipoLocalId, equipoVisitanteId])
         .eq('activo', true);
@@ -39,7 +39,7 @@ class EventoService {
         .map<Map<String, dynamic>>(
           (r) => {
             'id': r['jugadores']['id'] as String,
-            'nombre': r['jugadores']['nombre'] as String,
+            'nombre': r['jugadores']['nombre_completo'] as String,
             'equipo_id': r['equipo_id'] as String,
           },
         )
@@ -68,5 +68,31 @@ class EventoService {
         .from('eventos_partido')
         .delete()
         .eq('partido_id', partidoId);
+  }
+
+  Future<void> eliminarEventoPorId(String eventoId) async {
+    await _supabase.from('eventos_partido').delete().eq('id', eventoId);
+  }
+
+  Future<void> eliminarEventoPorGrupoId(String eventoId) async {
+    // 1. Obtener el evento
+    final evento = await _supabase
+        .from('eventos_partido')
+        .select('grupo_gol_id')
+        .eq('id', eventoId)
+        .single();
+
+    final grupoGolId = evento['grupo_gol_id'] as String?;
+
+    if (grupoGolId != null) {
+      // Eliminar todos los eventos con el mismo grupo_gol_id
+      await _supabase
+          .from('eventos_partido')
+          .delete()
+          .eq('grupo_gol_id', grupoGolId);
+    } else {
+      // Eliminar solo el evento individual (tarjetas, sustituciones)
+      await _supabase.from('eventos_partido').delete().eq('id', eventoId);
+    }
   }
 }
