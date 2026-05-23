@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/jugador_list_tile.dart';
 import '../widgets/loading_widget.dart';
 import 'jugador_form_screen.dart';
+//import '../services/equipo_service.dart';
 
 class JugadoresListScreen extends StatefulWidget {
   const JugadoresListScreen({super.key});
@@ -17,8 +18,10 @@ class JugadoresListScreen extends StatefulWidget {
 class _JugadoresListScreenState extends State<JugadoresListScreen> {
   final JugadorService _jugadorService = JugadorService();
   final AuthService _authService = AuthService();
-  
+  //final EquipoService _equipoService = EquipoService();
+
   List<JugadorModel> _jugadores = [];
+  //Map<String, String> _equiposMap = {};
   bool _isLoading = true;
   String? _errorMessage;
   bool _isAdmin = false;
@@ -27,7 +30,11 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
   void initState() {
     super.initState();
     _verificarPermisos();
-    _cargarJugadores();
+    _cargarDatos();
+  }
+
+  Future<void> _cargarDatos() async {
+    await _cargarJugadores();
   }
 
   Future<void> _verificarPermisos() async {
@@ -61,13 +68,25 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
     }
   }
 
+  // Future<void> _cargarEquiposMap() async {
+  //   try {
+  //     final equipos = await _equipoService.obtenerEquipos();
+  //     setState(() {
+  //       _equiposMap = {for (var e in equipos) e.id: e.nombre};
+  //     });
+  //   } catch (e) {
+  //     print('Error cargando equipos: $e');
+  //     _equiposMap = {};
+  //   }
+  // }
+
   Future<void> _eliminarJugador(String id, String nombre) async {
     setState(() => _isLoading = true);
-    
+
     try {
       await _jugadorService.eliminarJugador(id);
       await _cargarJugadores();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -94,9 +113,22 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
       context,
       MaterialPageRoute(builder: (context) => const JugadorFormScreen()),
     );
-    
+
     if (result == true) {
       await _cargarJugadores();
+    }
+  }
+
+  void _navegarAEditar(JugadorModel jugador) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            JugadorFormScreen(jugador: jugador), // ← pasas el objeto existente
+      ),
+    );
+    if (result == true) {
+      await _cargarDatos(); // recarga la lista después de editar
     }
   }
 
@@ -131,28 +163,29 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
       body: _isLoading
           ? const LoadingWidget()
           : _errorMessage != null
-              ? CustomErrorWidget(
-                  message: _errorMessage!,
-                  onRetry: _cargarJugadores,
-                )
-              : _jugadores.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      itemCount: _jugadores.length,
-                      itemBuilder: (context, index) {
-                        final jugador = _jugadores[index];
-                        return JugadorListTile(
-                          jugador: jugador,
-                          onTap: () {
-                            // TODO: Navegar a detalle del jugador
-                            print('Ver detalle de: ${jugador.nombreCompleto}');
-                          },
-                          onDelete: _isAdmin
-                              ? () => _eliminarJugador(jugador.id!, jugador.nombreCompleto)
-                              : null,
-                        );
-                      },
-                    ),
+          ? CustomErrorWidget(
+              message: _errorMessage!,
+              onRetry: _cargarJugadores,
+            )
+          : _jugadores.isEmpty
+          ? _buildEmptyState()
+          : ListView.builder(
+              itemCount: _jugadores.length,
+              itemBuilder: (context, index) {
+                final jugador = _jugadores[index];
+                return JugadorListTile(
+                  jugador: jugador,
+                  //equiposMap: _equiposMap,
+                  onTap: () => _navegarAEditar(jugador),
+                  onDelete: _isAdmin
+                      ? () => _eliminarJugador(
+                          jugador.id!,
+                          jugador.nombreCompleto,
+                        )
+                      : null,
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navegarAAgregar,
         backgroundColor: AppTheme.focusedLabelColor,
@@ -166,11 +199,7 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.people_outline,
-            size: 64,
-            color: Colors.grey,
-          ),
+          const Icon(Icons.people_outline, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
           const Text(
             'No hay jugadores registrados',
