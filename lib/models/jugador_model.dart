@@ -41,7 +41,27 @@ class JugadorModel {
       fotoUrl: json['foto_url'],
       activo: json['activo'] ?? true,
       estadisticasPublicas: json['estadisticas_publicas'] ?? false,
-      usuarioId: json['usuario_id'] as String?
+      usuarioId: json['usuario_id'] as String?,
+    );
+  }
+
+  JugadorModel copyWith({
+    String? id,
+    String? nombreCompleto,
+    DateTime? fechaNacimiento,
+    String? fotoUrl,
+    bool? activo,
+    bool? estadisticasPublicas,
+    String? usuarioId,
+  }) {
+    return JugadorModel(
+      id: id ?? this.id,
+      nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+      fechaNacimiento: fechaNacimiento ?? this.fechaNacimiento,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
+      activo: activo ?? this.activo,
+      estadisticasPublicas: estadisticasPublicas ?? this.estadisticasPublicas,
+      usuarioId: usuarioId ?? this.usuarioId,
     );
   }
 }
