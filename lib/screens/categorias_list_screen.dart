@@ -245,7 +245,7 @@ class _CategoriasListScreenState extends State<CategoriasListScreen> {
   Widget _buildCategoriaCard(CategoriaModel categoria) {
     final nombre = categoria.nombre;
     final temporadaNombre = categoria.temporadaNombre;
-    final id = categoria.id;
+    //final id = categoria.id;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),

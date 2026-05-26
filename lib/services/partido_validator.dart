@@ -3,7 +3,7 @@ import '../models/temporadas_model.dart';
 import 'temporada_service.dart';
 import 'equipo_service.dart';
 import 'campo_service.dart';
-import 'dart:math';
+//import 'dart:math';
 
 class PartidoValidator {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -68,8 +68,8 @@ class PartidoValidator {
     if (equipoLocal == null) throw Exception('Equipo local no encontrado.');
     if (equipoVisitante == null) throw Exception('Equipo visitante no encontrado.');
     
-    final esCompatibleLocal = _esCompatible(campo.cantidad, equipoLocal.cantidad as String);
-    final esCompatibleVisitante = _esCompatible(campo.cantidad, equipoVisitante.cantidad as String);
+    final esCompatibleLocal = _esCompatible(campo.cantidad, equipoLocal.cantidad);
+    final esCompatibleVisitante = _esCompatible(campo.cantidad, equipoVisitante.cantidad);
     
     if (!esCompatibleLocal) {
       throw Exception('El equipo local (${equipoLocal.cantidad}) no es compatible con el campo (${campo.cantidad}).');
