@@ -8,7 +8,7 @@ import '../models/campos_model.dart';
 import '../models/categorias_model.dart';
 import '../services/partido_service.dart';
 import '../services/equipo_service.dart';
-import '../services/campo_service.dart';
+//import '../services/campo_service.dart';
 import '../services/categoria_service.dart';
 import '../services/temporada_service.dart';
 import '../widgets/show_snackbar.dart';
@@ -25,14 +25,14 @@ class PartidoFormScreen extends StatefulWidget {
 class _PartidoFormScreenState extends State<PartidoFormScreen> {
   final PartidoService _partidoService = PartidoService();
   final EquipoService _equipoService = EquipoService();
-  final CampoService _campoService = CampoService();
+  //final CampoService _campoService = CampoService();
   final CategoriaService _categoriaService = CategoriaService();
   final TemporadaService _temporadaService = TemporadaService();
 
   List<EquipoModel> _todosEquipos = [];
   List<EquipoModel> _equiposFiltrados = [];
   List<CampoFutbolModel> _todosCampos = [];
-  List<CampoFutbolModel> _camposFiltrados = [];
+  //List<CampoFutbolModel> _camposFiltrados = [];
   List<CategoriaModel> _categorias = [];
 
   // Mapa de equipo_id -> lista de categorías (para modo edición)
@@ -50,8 +50,8 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
   String? _errorMessage;
   bool _esTemporadaActiva = false;
   bool get _esEdicion => widget.partido != null;
-  bool _observacionesExcedeLimite = false;
-  String _observacionesError = '';
+  final bool _observacionesExcedeLimite = false;
+  //final String _observacionesError = '';
 
   @override
   void initState() {
@@ -79,7 +79,7 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
 
       setState(() {
         _todosCampos = campos;
-        _camposFiltrados = campos;
+        //_camposFiltrados = campos;
         _esTemporadaActiva = esActiva;
         _isLoading = false;
       });
@@ -183,18 +183,18 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
     _filtrarPorCampo();
   }
 
-  void _validarObservaciones(String value) {
-    setState(() {
-      if (value.length > PartidoValidator.maxObservacionesLength) {
-        _observacionesExcedeLimite = true;
-        _observacionesError =
-            'Máximo ${PartidoValidator.maxObservacionesLength} caracteres. ';
-      } else {
-        _observacionesExcedeLimite = false;
-        _observacionesError = '';
-      }
-    });
-  }
+  // void _validarObservaciones(String value) {
+  //   setState(() {
+  //     if (value.length > PartidoValidator.maxObservacionesLength) {
+  //       _observacionesExcedeLimite = true;
+  //       _observacionesError =
+  //           'Máximo ${PartidoValidator.maxObservacionesLength} caracteres. ';
+  //     } else {
+  //       _observacionesExcedeLimite = false;
+  //       _observacionesError = '';
+  //     }
+  //   });
+  // }
 
   Future<void> _seleccionarFecha() async {
     final picked = await showDatePicker(

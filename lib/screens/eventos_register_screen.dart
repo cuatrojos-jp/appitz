@@ -10,12 +10,12 @@ import 'package:uuid/uuid.dart';
 
 // ── Tipos de evento (hardcoded para evitar queries extra) ──────────────────
 // Sincronizar con UUIDs reales de la tabla tipos_evento
-const String _idGol = '00ff0913-83be-451a-b138-4b2465a917c7';
-const String _idAutogol = '47a55ba0-17a8-46b6-a2a3-6415204c7474';
-const String _idAsistencia = '7945842e-5b3d-4321-9390-952e81991927';
-const String _idTarjetaRoja = '820b4a52-0cba-4778-8213-32c75012411d';
-const String _idSustitucion = 'eea6f4ae-aeb1-4990-875d-4caf3ec76672';
-const String _idTarjetaAmarilla = 'f989dd90-6401-4dc4-ad25-7ed16955ea1e';
+//const String _idGol = '00ff0913-83be-451a-b138-4b2465a917c7';
+//const String _idAutogol = '47a55ba0-17a8-46b6-a2a3-6415204c7474';
+//const String _idAsistencia = '7945842e-5b3d-4321-9390-952e81991927';
+//const String _idTarjetaRoja = '820b4a52-0cba-4778-8213-32c75012411d';
+//const String _idSustitucion = 'eea6f4ae-aeb1-4990-875d-4caf3ec76672';
+//const String _idTarjetaAmarilla = 'f989dd90-6401-4dc4-ad25-7ed16955ea1e';
 
 // ── Modelo de fila del formulario ──────────────────────────────────────────
 
@@ -113,8 +113,8 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
       ),
     ]);
 
-    _tiposEvento = resultados[0] as List<Map<String, dynamic>>;
-    final jugadores = resultados[1] as List<Map<String, dynamic>>;
+    _tiposEvento = resultados[0];
+    final jugadores = resultados[1];
 
     _jugadoresLocal = jugadores
         .where((j) => j['equipo_id'] == widget.partido.equipoLocalId)
@@ -173,8 +173,7 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
     }
     for (final evento in _eventosExistentes) {
       if (evento.jugadorId == jugadorId &&
-          evento.tipoCodigo == 'tarjeta_roja' &&
-          evento.minuto != null) {
+          evento.tipoCodigo == 'tarjeta_roja') {
         return evento.minuto;
       }
     }
