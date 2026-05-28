@@ -103,7 +103,9 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
               e.equipoId == widget.partido.equipoLocalId &&
               (e.tipoCodigo == 'gol' ||
                   e.tipoCodigo == 'asistencia' ||
-                  e.tipoCodigo == 'autogol'),
+                  e.tipoCodigo == 'autogol' ||
+                  (e.tipoCodigo == 'penal' &&
+                      e.minuto > 0)), // penal dentro del partido
         )
         .length;
   }
@@ -116,7 +118,37 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
               e.equipoId == widget.partido.equipoVisitanteId &&
               (e.tipoCodigo == 'gol' ||
                   e.tipoCodigo == 'asistencia' ||
-                  e.tipoCodigo == 'autogol'),
+                  e.tipoCodigo == 'autogol' ||
+                  (e.tipoCodigo == 'penal' &&
+                      e.minuto > 0)), // penal dentro del partido
+        )
+        .length;
+  }
+
+  // Solo tanda (minuto == 0)
+  bool get _hayPenales =>
+      _eventos.any((e) => e.tipoCodigo == 'penal' && e.minuto == 0);
+
+  int get _penalesLocal {
+    return _eventos
+        .where(
+          (e) =>
+              e.golLocal == true &&
+              e.equipoId == widget.partido.equipoLocalId &&
+              e.tipoCodigo == 'penal' &&
+              e.minuto == 0, // solo tanda
+        )
+        .length;
+  }
+
+  int get _penalesVisitante {
+    return _eventos
+        .where(
+          (e) =>
+              e.golLocal == true &&
+              e.equipoId == widget.partido.equipoVisitanteId &&
+              e.tipoCodigo == 'penal' &&
+              e.minuto == 0, // solo tanda
         )
         .length;
   }
@@ -144,6 +176,8 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
         return Icons.square;
       case 'sustitucion':
         return Icons.swap_horiz;
+      case 'penal':
+        return Icons.sports_soccer;
       default:
         return Icons.event;
     }
@@ -163,6 +197,8 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
         return Colors.red;
       case 'sustitucion':
         return Colors.blue;
+      case 'penal':
+        return Colors.green;
       default:
         return Colors.grey;
     }
@@ -182,6 +218,8 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
         return 'Tarjeta roja';
       case 'sustitucion':
         return 'Sustitución';
+      case 'penal':
+        return 'Penal';
       default:
         return codigo;
     }
@@ -374,6 +412,35 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
                     ),
                   ],
                 ),
+
+                if (_hayPenales) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'P  $_penalesLocal  -  $_penalesVisitante  P',
+                          style: const TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -492,7 +559,9 @@ class _PartidoDetailScreenState extends State<PartidoDetailScreen> {
           SizedBox(
             width: 36,
             child: Text(
-              "${evento.minuto}'",
+              evento.tipoCodigo == 'penal' && evento.minuto == 0
+                  ? 'P'
+                  : "${evento.minuto}'",
               style: const TextStyle(
                 color: AppTheme.primaryColor,
                 fontSize: 13,

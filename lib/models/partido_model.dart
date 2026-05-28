@@ -16,6 +16,7 @@ class PartidoModel {
   final String? observaciones;
   final DateTime creadoEn;
   final DateTime actualizadoEn;
+  final String temporadaId;
 
   PartidoModel({
     required this.id,
@@ -34,6 +35,7 @@ class PartidoModel {
     this.observaciones,
     required this.creadoEn,
     required this.actualizadoEn,
+    required this.temporadaId,
   });
 
   factory PartidoModel.fromJson(Map<String, dynamic> json) {
@@ -54,6 +56,7 @@ class PartidoModel {
       observaciones: json['observaciones'] as String?,
       creadoEn: DateTime.parse(json['creado_en'] as String),
       actualizadoEn: DateTime.parse(json['actualizado_en'] as String),
+      temporadaId: json['temporada_id'] as String,
     );
   }
 }

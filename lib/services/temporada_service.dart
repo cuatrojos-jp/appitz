@@ -205,19 +205,19 @@ class TemporadaService {
   }
 
   /// Verificar si existe una temporada activa
-  Future<bool> existeTemporadaActiva({String? excludeId}) async {
-    var query = _supabase
-        .from('temporadas')
-        .select('id')
-        .eq('estado_id', _estadoActivoId);
+  // Future<bool> existeTemporadaActiva({String? excludeId}) async {
+  //   var query = _supabase
+  //       .from('temporadas')
+  //       .select('id')
+  //       .eq('estado_id', _estadoActivoId);
 
-    if (excludeId != null) {
-      query = query.neq('id', excludeId);
-    }
+  //   if (excludeId != null) {
+  //     query = query.neq('id', excludeId);
+  //   }
 
-    final response = await query.limit(1);
-    return response.isNotEmpty;
-  }
+  //   final response = await query.limit(1);
+  //   return response.isNotEmpty;
+  // }
 
   /// Obtener la temporada activa (asume que solo hay una)
   Future<TemporadaModel?> obtenerTemporadaActiva() async {
