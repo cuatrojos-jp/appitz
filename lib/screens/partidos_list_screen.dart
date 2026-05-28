@@ -528,7 +528,10 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
               spacing: 8,
               runSpacing: 6,
               children: [
+                // Fecha y hora
                 Row(
+                  mainAxisSize:
+                      MainAxisSize.min,
                   children: [
                     const Icon(
                       Icons.calendar_today,
@@ -540,7 +543,12 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
                       _formatearFecha(partido.fechaHora),
                       style: const TextStyle(color: Colors.white, fontSize: 12),
                     ),
-                    const SizedBox(width: 12),
+                  ],
+                ),
+                // Campo
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     const Icon(
                       Icons.location_on,
                       color: AppTheme.primaryColor,
@@ -553,6 +561,7 @@ class _PartidosListScreenState extends State<PartidosListScreen> {
                     ),
                   ],
                 ),
+                // Estado
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,

@@ -14,15 +14,51 @@ class PartidoService {
       '75e0fced-c2d6-4896-9356-2b27a0bf3c78';
 
   /// Crear un nuevo partido (con validaciones)
+  // Future<PartidoModel> crearPartido({
+  //   required String campoId,
+  //   required String equipoLocalId,
+  //   required String equipoVisitanteId,
+  //   required DateTime fechaHora,
+  //   String? categoriaId,
+  //   String? observaciones,
+  // }) async {
+  //   // Validar antes de crear
+  //   _validator.validarLongitudObservaciones(observaciones);
+  //   await _validator.validarCreacionPartido(
+  //     campoId: campoId,
+  //     equipoLocalId: equipoLocalId,
+  //     equipoVisitanteId: equipoVisitanteId,
+  //     fechaHora: fechaHora,
+  //     categoriaId: categoriaId,
+  //   );
+
+  //   final response = await _supabase
+  //       .from('partidos')
+  //       .insert({
+  //         'campo_id': campoId,
+  //         'equipo_local_id': equipoLocalId,
+  //         'equipo_visitante_id': equipoVisitanteId,
+  //         'fecha_hora': fechaHora.toUtc().toIso8601String(),
+  //         if (categoriaId != null) 'categoria_id': categoriaId,
+  //         if (observaciones != null && observaciones.isNotEmpty)
+  //           'observaciones': observaciones,
+  //         'estado_id': _estadoProgramadoId, // Estado inicial: Programado
+  //       })
+  //       .select()
+  //       .single();
+
+  //   return PartidoModel.fromJson(response);
+  // }
+
   Future<PartidoModel> crearPartido({
     required String campoId,
     required String equipoLocalId,
     required String equipoVisitanteId,
     required DateTime fechaHora,
+    required String temporadaId, // 👈 agregado
     String? categoriaId,
     String? observaciones,
   }) async {
-    // Validar antes de crear
     _validator.validarLongitudObservaciones(observaciones);
     await _validator.validarCreacionPartido(
       campoId: campoId,
@@ -39,10 +75,11 @@ class PartidoService {
           'equipo_local_id': equipoLocalId,
           'equipo_visitante_id': equipoVisitanteId,
           'fecha_hora': fechaHora.toUtc().toIso8601String(),
+          'temporada_id': temporadaId, // 👈 agregado
           if (categoriaId != null) 'categoria_id': categoriaId,
           if (observaciones != null && observaciones.isNotEmpty)
             'observaciones': observaciones,
-          'estado_id': _estadoProgramadoId, // Estado inicial: Programado
+          'estado_id': _estadoProgramadoId,
         })
         .select()
         .single();

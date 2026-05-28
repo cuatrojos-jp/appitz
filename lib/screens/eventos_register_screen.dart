@@ -10,12 +10,12 @@ import 'package:uuid/uuid.dart';
 
 // ── Tipos de evento (hardcoded para evitar queries extra) ──────────────────
 // Sincronizar con UUIDs reales de la tabla tipos_evento
-const String _idGol = '00ff0913-83be-451a-b138-4b2465a917c7';
-const String _idAutogol = '47a55ba0-17a8-46b6-a2a3-6415204c7474';
-const String _idAsistencia = '7945842e-5b3d-4321-9390-952e81991927';
-const String _idTarjetaRoja = '820b4a52-0cba-4778-8213-32c75012411d';
-const String _idSustitucion = 'eea6f4ae-aeb1-4990-875d-4caf3ec76672';
-const String _idTarjetaAmarilla = 'f989dd90-6401-4dc4-ad25-7ed16955ea1e';
+//const String _idGol = '00ff0913-83be-451a-b138-4b2465a917c7';
+//const String _idAutogol = '47a55ba0-17a8-46b6-a2a3-6415204c7474';
+//const String _idAsistencia = '7945842e-5b3d-4321-9390-952e81991927';
+//const String _idTarjetaRoja = '820b4a52-0cba-4778-8213-32c75012411d';
+//const String _idSustitucion = 'eea6f4ae-aeb1-4990-875d-4caf3ec76672';
+//const String _idTarjetaAmarilla = 'f989dd90-6401-4dc4-ad25-7ed16955ea1e';
 
 // ── Modelo de fila del formulario ──────────────────────────────────────────
 
@@ -41,10 +41,13 @@ class _EventoFila {
   bool get requiereJugadorSecundario =>
       tipoCodigo == 'asistencia' || tipoCodigo == 'sustitucion';
 
+  bool get requiereMinuto => tipoCodigo != 'penal';
+
   bool get afectaMarcador =>
       tipoCodigo == 'gol' ||
       tipoCodigo == 'autogol' ||
-      tipoCodigo == 'asistencia';
+      tipoCodigo == 'asistencia' ||
+      tipoCodigo == 'penal';
 }
 
 // ── Pantalla ───────────────────────────────────────────────────────────────
@@ -113,8 +116,8 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
       ),
     ]);
 
-    _tiposEvento = resultados[0] as List<Map<String, dynamic>>;
-    final jugadores = resultados[1] as List<Map<String, dynamic>>;
+    _tiposEvento = resultados[0];
+    final jugadores = resultados[1];
 
     _jugadoresLocal = jugadores
         .where((j) => j['equipo_id'] == widget.partido.equipoLocalId)
@@ -173,8 +176,7 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
     }
     for (final evento in _eventosExistentes) {
       if (evento.jugadorId == jugadorId &&
-          evento.tipoCodigo == 'tarjeta_roja' &&
-          evento.minuto != null) {
+          evento.tipoCodigo == 'tarjeta_roja') {
         return evento.minuto;
       }
     }
@@ -246,23 +248,25 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
         if (amarillas >= 3) {
           errores.add(
             'Fila $num: ${fila.jugadorNombre} ya tiene 2 tarjetas amarillas. '
-            'La siguiente infracción debe ser tarjeta roja.'
+            'La siguiente infracción debe ser tarjeta roja.',
           );
         }
       }
-      if (fila.minuto == null) {
-        errores.add('Fila $num: ingresa el minuto.');
-        continue;
-      }
-      if (fila.minuto! < 0) {
-        errores.add('Fila $num: el minuto no puede ser negativo.');
-        continue;
-      }
-      if (fila.minuto! > _minutoMaximo) {
-        errores.add(
-          'Fila $num: minuto máximo $_minutoMaximo para este partido.',
-        );
-        continue;
+      if (fila.requiereMinuto) {
+        if (fila.minuto == null) {
+          errores.add('Fila $num: ingresa el minuto.');
+          continue;
+        }
+        if (fila.minuto! < 0) {
+          errores.add('Fila $num: el minuto no puede ser negativo.');
+          continue;
+        }
+        if (fila.minuto! > _minutoMaximo) {
+          errores.add(
+            'Fila $num: minuto máximo $_minutoMaximo para este partido.',
+          );
+          continue;
+        }
       }
       if (fila.jugadorId == null) {
         errores.add('Fila $num: selecciona el jugador principal.');
@@ -278,12 +282,14 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
       }
 
       // Validar tarjeta roja / sustitución previa
-      final errorJugador = _validarJugadorEnMinuto(
-        fila.jugadorId!,
-        fila.minuto!,
-      );
-      if (errorJugador != null) {
-        errores.add('Fila $num: $errorJugador');
+      if (fila.minuto != null) {
+        final errorJugador = _validarJugadorEnMinuto(
+          fila.jugadorId!,
+          fila.minuto!,
+        );
+        if (errorJugador != null) {
+          errores.add('Fila $num: $errorJugador');
+        }
       }
     }
 
@@ -305,6 +311,8 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
         return Colors.red;
       case 'sustitucion':
         return Colors.blue;
+      case 'penal':
+        return Colors.green;
       default:
         return Colors.grey;
     }
@@ -324,6 +332,8 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
         return 'Tarjeta roja';
       case 'sustitucion':
         return 'Sustitución';
+      case 'penal':
+        return 'Penal';
       default:
         return codigo;
     }
@@ -339,7 +349,7 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
     final uuid = Uuid(); // ← Generador de UUIDs
 
     for (final fila in _filas) {
-      final minuto = fila.minuto!;
+      final minuto = fila.minuto ?? 0;
       final jugadorId = fila.jugadorId!;
       final equipoId = fila.equipoId!;
       final esLocal = equipoId == widget.partido.equipoLocalId;
@@ -353,7 +363,7 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
         'minuto': minuto,
         'equipo_id': equipoId,
         'registrado_por': _usuarioId,
-        'temporada_id': widget.partido.categoriaId,
+        'temporada_id': widget.partido.temporadaId,
       };
 
       switch (fila.tipoCodigo) {
@@ -379,6 +389,24 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
             ...base,
             'equipo_id': equipoContrarioId,
             'golLocal': !golLocalPrimero, // valor opuesto al primero
+            'grupo_gol_id': grupoGolId,
+          });
+          break;
+
+        case 'penal':
+          final grupoGolId = uuid.v4();
+          registros.add({
+            ...base,
+            'golLocal': true,
+            'grupo_gol_id': grupoGolId,
+          });
+          final equipoContrarioPenal = esLocal
+              ? widget.partido.equipoVisitanteId
+              : widget.partido.equipoLocalId;
+          registros.add({
+            ...base,
+            'equipo_id': equipoContrarioPenal,
+            'golLocal': false,
             'grupo_gol_id': grupoGolId,
           });
           break;
@@ -674,10 +702,14 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
                   controller: fila.minutoController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  // enabled: siempre activo ahora
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
-                    labelText: "Min'",
+                    // Para penal indica que es opcional, para el resto es requerido
+                    labelText: fila.tipoCodigo == 'penal'
+                        ? "Min' (opc.)"
+                        : "Min'",
                     labelStyle: const TextStyle(
                       color: AppTheme.mutedForegroundColor,
                       fontSize: 12,

@@ -30,6 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<BandejaScreenState> _bandejaKey = GlobalKey();
 
   int _selectedIndex = 0;
+  // ignore: unused_field
   bool _tieneNoLeidas = false;
 
   @override
