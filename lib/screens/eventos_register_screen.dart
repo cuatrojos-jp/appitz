@@ -352,7 +352,7 @@ class _EventosRegisterScreenState extends State<EventosRegisterScreen> {
         'minuto': minuto,
         'equipo_id': equipoId,
         'registrado_por': _usuarioId,
-        'temporada_id': widget.partido.categoriaId,
+        'temporada_id': widget.partido.temporadaId,
       };
 
       switch (fila.tipoCodigo) {

@@ -248,6 +248,81 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
     }
   }
 
+  // Future<void> _guardar() async {
+  //   if (_selectedCampoId == null) {
+  //     showSnackBar(context, 'Selecciona el campo', color: Colors.red);
+  //     return;
+  //   }
+  //   if (_selectedEquipoLocalId == null) {
+  //     showSnackBar(context, 'Selecciona el equipo local', color: Colors.red);
+  //     return;
+  //   }
+  //   if (_selectedEquipoVisitanteId == null) {
+  //     showSnackBar(
+  //       context,
+  //       'Selecciona el equipo visitante',
+  //       color: Colors.red,
+  //     );
+  //     return;
+  //   }
+  //   if (_selectedEquipoLocalId == _selectedEquipoVisitanteId) {
+  //     showSnackBar(
+  //       context,
+  //       'Los equipos deben ser diferentes',
+  //       color: Colors.red,
+  //     );
+  //     return;
+  //   }
+  //   if (_observacionesController.text.length >
+  //       PartidoValidator.maxObservacionesLength) {
+  //     showSnackBar(
+  //       context,
+  //       'Las observaciones exceden el límite de ${PartidoValidator.maxObservacionesLength} caracteres',
+  //       color: Colors.red,
+  //     );
+  //     return;
+  //   }
+
+  //   setState(() => _isSaving = true);
+
+  //   try {
+  //     if (_esEdicion) {
+  //       await _partidoService.actualizarPartido(
+  //         id: widget.partido!.id,
+  //         campoId: _selectedCampoId,
+  //         equipoLocalId: _selectedEquipoLocalId,
+  //         equipoVisitanteId: _selectedEquipoVisitanteId,
+  //         fechaHora: _selectedFecha,
+  //         categoriaId: _selectedCategoriaId,
+  //         observaciones: _observacionesController.text.trim().isEmpty
+  //             ? null
+  //             : _observacionesController.text.trim(),
+  //       );
+  //       showSnackBar(context, 'Partido actualizado', color: Colors.green);
+  //     } else {
+  //       await _partidoService.crearPartido(
+  //         campoId: _selectedCampoId!,
+  //         equipoLocalId: _selectedEquipoLocalId!,
+  //         equipoVisitanteId: _selectedEquipoVisitanteId!,
+  //         fechaHora: _selectedFecha,
+  //         categoriaId: _selectedCategoriaId,
+  //         observaciones: _observacionesController.text.trim().isEmpty
+  //             ? null
+  //             : _observacionesController.text.trim(),
+  //       );
+  //       showSnackBar(context, 'Partido creado', color: Colors.green);
+  //     }
+
+  //     if (mounted) Navigator.pop(context, true);
+  //   } catch (e) {
+  //     if (mounted) {
+  //       showSnackBar(context, 'Error: ${e.toString()}', color: Colors.red);
+  //     }
+  //   } finally {
+  //     if (mounted) setState(() => _isSaving = false);
+  //   }
+  // }
+
   Future<void> _guardar() async {
     if (_selectedCampoId == null) {
       showSnackBar(context, 'Selecciona el campo', color: Colors.red);
@@ -286,6 +361,24 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // En edición no se reasigna la temporada, el partido ya tiene la suya.
+      // En creación se obtiene la temporada actual automáticamente.
+      String? temporadaId;
+      if (!_esEdicion) {
+        final temporada = await _temporadaService.obtenerTemporadaActual();
+        if (temporada == null) {
+          if (mounted) {
+            showSnackBar(
+              context,
+              'No hay una temporada activa o programada para asignar al partido',
+              color: Colors.red,
+            );
+          }
+          return;
+        }
+        temporadaId = temporada.id;
+      }
+
       if (_esEdicion) {
         await _partidoService.actualizarPartido(
           id: widget.partido!.id,
@@ -306,6 +399,7 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
           equipoVisitanteId: _selectedEquipoVisitanteId!,
           fechaHora: _selectedFecha,
           categoriaId: _selectedCategoriaId,
+          temporadaId: temporadaId!,
           observaciones: _observacionesController.text.trim().isEmpty
               ? null
               : _observacionesController.text.trim(),
@@ -340,11 +434,15 @@ class _PartidoFormScreenState extends State<PartidoFormScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: (_isSaving || _observacionesExcedeLimite) ? null : _guardar,
+            onPressed: (_isSaving || _observacionesExcedeLimite)
+                ? null
+                : _guardar,
             child: Text(
               'Guardar',
               style: TextStyle(
-                color: (_isSaving || _observacionesExcedeLimite) ? Colors.grey : AppTheme.primaryColor,
+                color: (_isSaving || _observacionesExcedeLimite)
+                    ? Colors.grey
+                    : AppTheme.primaryColor,
                 fontSize: 16,
               ),
             ),
