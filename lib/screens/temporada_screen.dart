@@ -4,6 +4,7 @@ import '../services/temporada_service.dart';
 import '../models/temporadas_model.dart';
 import 'agregar_temporada_screen.dart';
 import '../widgets/show_snackbar.dart';
+import 'estadisticas_screen.dart';
 
 class TemporadaScreen extends StatefulWidget {
   const TemporadaScreen({super.key});
@@ -818,6 +819,46 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                final esHistorica =
+                    estadoId == _estadoFinalizadoId ||
+                    estadoId == _estadoSuspendidoId;
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EstadisticasScreen(temporada: temporada),
+                  ),
+                );
+              },
+              icon: Icon(
+                Icons.bar_chart_outlined,
+                size: 16,
+                color: estadoColor,
+              ),
+              label: Text(
+                'Ver estadísticas',
+                style: TextStyle(
+                  color: estadoColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: estadoColor.withValues(alpha: 0.4)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
             ),
           ),
         ],
