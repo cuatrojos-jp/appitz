@@ -14,7 +14,7 @@ class EstadisticaEquipoModel {
   final int ganados;
   final int perdidos;
   final int empates;
-  final int empatesGanados;
+  final int? empatesGanados;
   final int golesFavor;
   final int golesContra;
   final int diferenciaGoles;
@@ -35,7 +35,7 @@ class EstadisticaEquipoModel {
     required this.ganados,
     required this.perdidos,
     required this.empates,
-    required this.empatesGanados,
+    this.empatesGanados,
     required this.golesFavor,
     required this.golesContra,
     required this.diferenciaGoles,
@@ -56,7 +56,7 @@ class EstadisticaEquipoModel {
       ganados: (json['ganados'] as num).toInt(),
       perdidos: (json['perdidos'] as num).toInt(),
       empates: (json['empates'] as num).toInt(),
-      empatesGanados: (json['empates_ganados'] as num).toInt(),
+      empatesGanados: (json['empates_ganados'] as num?)?.toInt(),
       golesFavor: (json['goles_favor'] as num).toInt(),
       golesContra: (json['goles_contra'] as num).toInt(),
       diferenciaGoles: (json['diferencia_goles'] as num).toInt(),

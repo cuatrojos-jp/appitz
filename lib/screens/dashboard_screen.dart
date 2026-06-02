@@ -15,6 +15,7 @@ import 'campos_list_screen.dart';
 import 'partidos_list_screen.dart';
 import 'equipo_list_screen.dart';
 import 'configuracion_screen.dart';
+import 'perfil_jugador_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String rolId;
@@ -167,6 +168,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 0,
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              _navigateTo(context, const PerfilJugadorScreen());
+            },
+            tooltip: 'Perfil',
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
