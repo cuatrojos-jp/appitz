@@ -12,6 +12,8 @@ class AppTheme {
   static const buttonTextColor = Colors.green;
   static const cursorColor = Colors.green;
 
+
+  // Estos son los que importan
   static const backgroundColorAlt = Color(0xFF0F0F11);
   static const cardColor = Color(0xFF1A1A1E);
   static const primaryColor = Color(0xFF6EE7B7); // verde-menta
