@@ -54,4 +54,17 @@ class JugadorService {
   Future<void> eliminarJugador(String id) async {
     await _supabase.from('jugadores').delete().eq('id', id);
   }
+  Future<bool> toggleEstadisticasPublicas({
+    required String jugadorId,
+    required bool nuevoValor,
+  }) async {
+    final response = await _supabase
+        .from('jugadores')
+        .update({'estadisticas_publicas': nuevoValor})
+        .eq('id', jugadorId)
+        .select('estadisticas_publicas')
+        .single();
+
+    return response['estadisticas_publicas'] as bool;
+  }
 }

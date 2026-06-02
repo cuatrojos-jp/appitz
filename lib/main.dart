@@ -7,25 +7,17 @@ import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 1. Cargar variables de entorno
   await dotenv.load();
-
-  // 2. Inicializar Firebase
   await Firebase.initializeApp();
-
-  // 3. Inicializar Supabase
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
-
-  // 4. Inicializar servicio de notificaciones
-  await NotificationService().initialize();
-
+  await initializeDateFormatting('es', null);
   runApp(const MyApp());
 }
 
