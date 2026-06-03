@@ -107,6 +107,15 @@ class TemporadaService {
     return response.map((json) => TemporadaModel.fromJson(json)).toList();
   }
 
+  Future<List<String>?> listarTemporadaIds() async {
+    final response = await _supabase
+        .from('temporadas')
+        .select('id')
+        .order('fecha_inicio', ascending: false);
+
+    return response.map((json) => json['id'] as String).toList();
+  }
+
   /// Obtener temporadas activas y programadas (para dropdown)
   Future<List<TemporadaModel>> obtenerTemporadasActivasYProgramadas() async {
     final response = await _supabase

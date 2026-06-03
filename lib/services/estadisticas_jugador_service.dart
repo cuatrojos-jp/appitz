@@ -66,6 +66,49 @@ class EstadisticasJugadorService {
 
     if (response == null) return null;
 
-    return EstadisticasJugadorModel.fromJson(response as Map<String, dynamic>);
+    return EstadisticasJugadorModel.fromJson(response);
+  }
+
+  Future<List<EstadisticasJugadorModel>> getHistoricoPropio({
+    int limite = 5,
+  }) async {
+    final usuarioId = await _authService.getUsuarioId();
+    if (usuarioId == null) return [];
+
+    final jugadorResponse = await _supabase
+        .from('jugadores')
+        .select('id')
+        .eq('usuario_id', usuarioId)
+        .maybeSingle();
+
+    if (jugadorResponse == null) return [];
+
+    final jugadorId = jugadorResponse['id'] as String;
+
+    // Traemos los IDs de las últimas 5 temporadas (cualquier estado)
+    final temporadasResponse = await _supabase
+        .from('temporadas')
+        .select('id')
+        .order('fecha_inicio', ascending: false)
+        .limit(limite);
+
+    final temporadaIds = (temporadasResponse as List)
+        .map((t) => t['id'] as String)
+        .toList();
+
+    if (temporadaIds.isEmpty) return [];
+
+    final response = await _supabase
+        .from('estadisticas_historicas_jugadores')
+        .select()
+        .eq('jugador_id', jugadorId)
+        .inFilter('temporada_id', temporadaIds)
+        .order('cerrado_en', ascending: false);
+
+    return (response as List)
+        .map(
+          (r) => EstadisticasJugadorModel.fromJson(r as Map<String, dynamic>),
+        )
+        .toList();
   }
 }
