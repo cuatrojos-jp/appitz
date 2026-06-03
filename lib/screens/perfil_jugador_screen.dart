@@ -13,6 +13,7 @@ import '../services/auth_service.dart';
 import '../services/estadisticas_jugador_service.dart';
 import '../services/jugador_service.dart';
 import '../theme/app_theme.dart';
+import 'estadisticas_historicas_jugador_screen.dart';
 
 class PerfilJugadorScreen extends StatefulWidget {
   const PerfilJugadorScreen({super.key});
@@ -626,6 +627,35 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
               ),
             ),
           ],
+        ),
+        // Al final de _buildEstadisticas(), después del Row de las tres tarjetas:
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const EstadisticasHistoricasJugadorScreen(),
+              ),
+            ),
+            icon: const Icon(
+              Icons.history_rounded,
+              size: 16,
+              color: AppTheme.primaryColor,
+            ),
+            label: const Text(
+              'Ver estadísticas anteriores',
+              style: TextStyle(color: AppTheme.primaryColor, fontSize: 13),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: AppTheme.borderColor),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
         ),
       ],
     );
