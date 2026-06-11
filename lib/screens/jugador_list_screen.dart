@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/jugador_list_tile.dart';
 import '../widgets/loading_widget.dart';
 import 'jugador_form_screen.dart';
+import 'perfil_jugador_screen.dart';
 //import '../services/equipo_service.dart';
 
 class JugadoresListScreen extends StatefulWidget {
@@ -16,6 +17,8 @@ class JugadoresListScreen extends StatefulWidget {
 }
 
 class _JugadoresListScreenState extends State<JugadoresListScreen> {
+  static const String _adminRoleId = 'a0d38955-fa67-4751-a36b-777fcf4d8ed9';
+
   final JugadorService _jugadorService = JugadorService();
   final AuthService _authService = AuthService();
   //final EquipoService _equipoService = EquipoService();
@@ -39,12 +42,14 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
 
   Future<void> _verificarPermisos() async {
     final userId = _authService.getCurrentUserId();
-    if (userId != null) {
-      final rolId = await _authService.getPermisos(userId);
-      // Si el rol_id es el del coordinador (admin)
-      setState(() {
-        _isAdmin = rolId != null; // Ajusta según el ID real
-      });
+    if (userId == null) {
+      if (mounted) setState(() => _isAdmin = false);
+      return;
+    }
+
+    final rolId = await _authService.getRolId(userId);
+    if (mounted) {
+      setState(() => _isAdmin = rolId == _adminRoleId);
     }
   }
 
@@ -109,6 +114,8 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
   }
 
   void _navegarAAgregar() async {
+    if (!_isAdmin) return;
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const JugadorFormScreen()),
@@ -120,16 +127,26 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
   }
 
   void _navegarAEditar(JugadorModel jugador) async {
+    if (!_isAdmin) return;
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            JugadorFormScreen(jugador: jugador), // ← pasas el objeto existente
+        builder: (context) => JugadorFormScreen(jugador: jugador),
       ),
     );
     if (result == true) {
       await _cargarDatos(); // recarga la lista después de editar
     }
+  }
+
+  void _navegarAlPerfil(JugadorModel jugador) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PerfilJugadorScreen(jugadorId: jugador.id),
+      ),
+    );
   }
 
   @override
@@ -152,12 +169,12 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          // Botón para agregar nuevo jugador
-          IconButton(
-            icon: const Icon(Icons.add, color: AppTheme.titleTextColor),
-            onPressed: _navegarAAgregar,
-            tooltip: 'Agregar jugador',
-          ),
+          if (_isAdmin)
+            IconButton(
+              icon: const Icon(Icons.add, color: AppTheme.titleTextColor),
+              onPressed: _navegarAAgregar,
+              tooltip: 'Agregar jugador',
+            ),
         ],
       ),
       body: _isLoading
@@ -175,8 +192,8 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
                 final jugador = _jugadores[index];
                 return JugadorListTile(
                   jugador: jugador,
-                  //equiposMap: _equiposMap,
-                  onTap: () => _navegarAEditar(jugador),
+                  onTap: () => _navegarAlPerfil(jugador),
+                  onEdit: _isAdmin ? () => _navegarAEditar(jugador) : null,
                   onDelete: _isAdmin
                       ? () => _eliminarJugador(
                           jugador.id!,
@@ -186,11 +203,13 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navegarAAgregar,
-        backgroundColor: AppTheme.focusedLabelColor,
-        child: const Icon(Icons.add, color: Colors.black),
-      ),
+      floatingActionButton: _isAdmin
+          ? FloatingActionButton(
+              onPressed: _navegarAAgregar,
+              backgroundColor: AppTheme.focusedLabelColor,
+              child: const Icon(Icons.add, color: Colors.black),
+            )
+          : null,
     );
   }
 
@@ -206,14 +225,21 @@ class _JugadoresListScreenState extends State<JugadoresListScreen> {
             style: TextStyle(color: Colors.grey, fontSize: 16),
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _navegarAAgregar,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.buttonColor,
-              foregroundColor: AppTheme.buttonTextColor,
+          if (_isAdmin)
+            ElevatedButton(
+              onPressed: _navegarAAgregar,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.buttonColor,
+                foregroundColor: AppTheme.buttonTextColor,
+              ),
+              child: const Text('Agregar primer jugador'),
+            )
+          else
+            const Text(
+              'Solo los administradores pueden crear jugadores.',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+              textAlign: TextAlign.center,
             ),
-            child: const Text('Agregar primer jugador'),
-          ),
         ],
       ),
     );

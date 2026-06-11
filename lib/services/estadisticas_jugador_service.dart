@@ -69,6 +69,52 @@ class EstadisticasJugadorService {
     return EstadisticasJugadorModel.fromJson(response);
   }
 
+  Future<List<EstadisticasJugadorModel>> getEstadisticasPorJugador(
+    String jugadorId,
+  ) async {
+    final response = await _supabase
+        .from('estadisticas_jugadores')
+        .select()
+        .eq('jugador_id', jugadorId);
+
+    return (response as List<dynamic>)
+        .map(
+          (row) =>
+              EstadisticasJugadorModel.fromJson(row as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  Future<List<EstadisticasJugadorModel>> getHistoricoPorJugador(
+    String jugadorId, {
+    int limite = 5,
+  }) async {
+    final temporadasResponse = await _supabase
+        .from('temporadas')
+        .select('id')
+        .order('fecha_inicio', ascending: false)
+        .limit(limite);
+
+    final temporadaIds = (temporadasResponse as List)
+        .map((t) => t['id'] as String)
+        .toList();
+
+    if (temporadaIds.isEmpty) return [];
+
+    final response = await _supabase
+        .from('estadisticas_historicas_jugadores')
+        .select()
+        .eq('jugador_id', jugadorId)
+        .inFilter('temporada_id', temporadaIds)
+        .order('cerrado_en', ascending: false);
+
+    return (response as List)
+        .map(
+          (r) => EstadisticasJugadorModel.fromJson(r as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
   Future<List<EstadisticasJugadorModel>> getHistoricoPropio({
     int limite = 5,
   }) async {

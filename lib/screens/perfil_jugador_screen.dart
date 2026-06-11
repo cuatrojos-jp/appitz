@@ -16,7 +16,9 @@ import '../theme/app_theme.dart';
 import 'estadisticas_historicas_jugador_screen.dart';
 
 class PerfilJugadorScreen extends StatefulWidget {
-  const PerfilJugadorScreen({super.key});
+  final String? jugadorId;
+
+  const PerfilJugadorScreen({super.key, this.jugadorId});
 
   @override
   State<PerfilJugadorScreen> createState() => _PerfilJugadorScreenState();
@@ -36,6 +38,10 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
   bool _cargando = true;
   bool _modoEdicion = false;
   bool _guardando = false;
+  bool _perfilPublico = false;
+  bool _esAdmin = false;
+  bool _esMiPerfil = false;
+  bool _puedeVerEstadisticas = true;
   File? _imagenSeleccionada;
 
   // ── Controladores de edición ───────────────────────────────────────────────
@@ -82,19 +88,46 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
   Future<void> _cargarDatos() async {
     setState(() => _cargando = true);
     try {
-      final usuarioId = await _authService.getUsuarioId();
-      if (usuarioId == null) return;
+      final usuarioActualId = await _authService.getUsuarioId();
+      if (usuarioActualId == null) return;
 
-      final jugadorResp = await _supabase
-          .from('jugadores')
-          .select()
-          .eq('usuario_id', usuarioId)
-          .maybeSingle();
+      final rolId = await _authService.getRolId(usuarioActualId);
+      if (mounted) {
+        setState(() => _esAdmin = rolId == 'a0d38955-fa67-4751-a36b-777fcf4d8ed9');
+      }
 
-      if (jugadorResp == null) return;
+      final jugadorResp = widget.jugadorId != null
+          ? await _supabase
+              .from('jugadores')
+              .select()
+              .eq('id', widget.jugadorId as Object)
+              .maybeSingle()
+          : await _supabase
+              .from('jugadores')
+              .select()
+              .eq('usuario_id', usuarioActualId)
+              .maybeSingle();
+
+      if (jugadorResp == null) {
+        if (!mounted) return;
+        setState(() {
+          _jugador = null;
+          _estadisticas = [];
+          _cargando = false;
+        });
+        _mostrarError('Aún no tienes un perfil de jugador asociado.');
+        return;
+      }
 
       final jugador = JugadorModel.fromJson(jugadorResp);
-      final stats = await _statsService.getEstadisticasPropias();
+      _esMiPerfil = jugador.usuarioId == usuarioActualId;
+      _puedeVerEstadisticas = _esAdmin || _esMiPerfil || jugador.estadisticasPublicas;
+
+      final stats = _puedeVerEstadisticas
+          ? (widget.jugadorId != null
+              ? await _statsService.getEstadisticasPorJugador(jugador.id!)
+              : await _statsService.getEstadisticasPropias())
+          : <EstadisticasJugadorModel>[];
 
       setState(() {
         _jugador = jugador;
@@ -115,6 +148,7 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
     _emailCtrl.text = j.emailContacto ?? '';
     _descripcionCtrl.text = j.descripcion ?? '';
     _fechaNacimiento = j.fechaNacimiento;
+    _perfilPublico = j.estadisticasPublicas;
   }
 
   // ── Foto ───────────────────────────────────────────────────────────────────
@@ -175,8 +209,6 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
                 onTap: () {
                   Navigator.pop(context);
                   setState(() => _imagenSeleccionada = null);
-                  // Para eliminar también en Supabase al guardar,
-                  // marca foto_url como null en el jugador local:
                   if (_jugador != null) {
                     _jugador = JugadorModel(
                       id: _jugador!.id,
@@ -184,7 +216,7 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
                       nombreCompleto: _jugador!.nombreCompleto,
                       emailContacto: _jugador!.emailContacto,
                       fechaNacimiento: _jugador!.fechaNacimiento,
-                      fotoUrl: null, // ← limpia la foto
+                      fotoUrl: null,
                       activo: _jugador!.activo,
                       estadisticasPublicas: _jugador!.estadisticasPublicas,
                       descripcion: _jugador!.descripcion,
@@ -252,6 +284,7 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
               : _descripcionCtrl.text.trim(),
           fechaNacimiento: _fechaNacimiento,
           fotoUrl: nuevaFotoUrl,
+          estadisticasPublicas: _perfilPublico,
         ),
       );
 
@@ -279,22 +312,6 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
     });
   }
 
-  // ── Toggle estadísticas públicas ───────────────────────────────────────────
-  Future<void> _toggleEstadisticasPublicas(bool valor) async {
-    if (_jugador == null) return;
-    try {
-      final nuevo = await _jugadorService.toggleEstadisticasPublicas(
-        jugadorId: _jugador!.id!,
-        nuevoValor: valor,
-      );
-      setState(() {
-        _jugador = _jugador!.copyWith(estadisticasPublicas: nuevo);
-      });
-    } catch (_) {
-      _mostrarError('No se pudo actualizar la visibilidad');
-    }
-  }
-
   // ── Date picker ────────────────────────────────────────────────────────────
   Future<void> _seleccionarFecha() async {
     final hoy = DateTime.now();
@@ -315,6 +332,97 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
       ),
     );
     if (picked != null) setState(() => _fechaNacimiento = picked);
+  }
+
+  // ── Doble confirmación privacidad ──────────────────────────────────────────
+  Future<bool> _confirmarCambioPrivacidad(bool nuevoValor) async {
+    final primera = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderColor),
+        ),
+        title: Text(
+          nuevoValor ? 'Hacer perfil público' : 'Hacer perfil privado',
+          style: const TextStyle(color: Colors.white, fontSize: 17),
+        ),
+        content: Text(
+          nuevoValor
+              ? 'Tu perfil y estadísticas serán visibles para otros jugadores.'
+              : 'Tu perfil y estadísticas dejarán de ser visibles para otros jugadores.',
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 14,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.primaryColor),
+            child: const Text(
+              'Continuar',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (primera != true) return false;
+
+    final segunda = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderColor),
+        ),
+        title: const Text(
+          '¿Estás seguro?',
+          style: TextStyle(color: Colors.white, fontSize: 17),
+        ),
+        content: Text(
+          nuevoValor
+              ? 'Confirma que deseas que tu perfil sea visible públicamente.'
+              : 'Confirma que deseas ocultar tu perfil a otros jugadores.',
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 14,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.primaryColor),
+            child: Text(
+              nuevoValor ? 'Sí, hacer público' : 'Sí, hacer privado',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return segunda == true;
   }
 
   // ── Helpers UI ─────────────────────────────────────────────────────────────
@@ -367,7 +475,9 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
       backgroundColor: AppTheme.backgroundColorAlt,
       elevation: 0,
       title: Text(
-        _modoEdicion ? 'Editar perfil' : 'Mi perfil',
+        _modoEdicion
+            ? 'Editar perfil'
+            : (_esMiPerfil ? 'Mi perfil' : _jugador?.nombreCompleto ?? 'Perfil del jugador'),
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w600,
@@ -375,35 +485,7 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
         ),
       ),
       actions: [
-        if (!_modoEdicion && _jugador != null) ...[
-          // Toggle estadísticas públicas en el AppBar
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            color: AppTheme.cardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: AppTheme.borderColor),
-            ),
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                enabled: false,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Perfil público',
-                      style: TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                    Switch.adaptive(
-                      value: _jugador!.estadisticasPublicas,
-                      activeColor: AppTheme.primaryColor,
-                      onChanged: _toggleEstadisticasPublicas,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        if (!_modoEdicion && _jugador != null && (_esAdmin || _esMiPerfil)) ...[
           IconButton(
             icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryColor),
             onPressed: () => setState(() => _modoEdicion = true),
@@ -537,8 +619,26 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
 
           const SizedBox(height: 28),
 
-          // Estadísticas
-          _buildEstadisticas(),
+          if (_puedeVerEstadisticas) ...[
+            // Estadísticas
+            _buildEstadisticas(),
+          ] else ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: const Text(
+                'Este perfil mantiene sus estadísticas en privado.',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
 
           const SizedBox(height: 32),
         ],
@@ -547,7 +647,6 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
   }
 
   Widget _buildEstadisticas() {
-    // Acumular totales de todas las temporadas activas/programadas
     int totalGoles = 0;
     int totalAsistencias = 0;
     int totalPenales = 0;
@@ -559,7 +658,6 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
         totalAsistencias += s.asistencias;
         totalPenales += s.penales;
       }
-      // Si hay una sola temporada, mostramos su nombre
       if (_estadisticas.length == 1) {
         temporadaNombre = _estadisticas.first.temporadaNombre;
       }
@@ -628,17 +726,19 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
             ),
           ],
         ),
-        // Al final de _buildEstadisticas(), después del Row de las tres tarjetas:
         const SizedBox(height: 14),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const EstadisticasHistoricasJugadorScreen(),
+        if (_puedeVerEstadisticas)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EstadisticasHistoricasJugadorScreen(
+                    jugadorId: _jugador?.id,
+                  ),
+                ),
               ),
-            ),
             icon: const Icon(
               Icons.history_rounded,
               size: 16,
@@ -795,6 +895,60 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen>
               decoration: _inputDecoration(
                 label: 'Descripción',
                 icon: Icons.notes_rounded,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Privacidad del perfil
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppTheme.secondaryColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.visibility_outlined,
+                    color: AppTheme.mutedForegroundColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Perfil público',
+                          style: TextStyle(color: Colors.white, fontSize: 15),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _perfilPublico
+                              ? 'Visible para otros jugadores'
+                              : 'Solo visible para ti',
+                          style: const TextStyle(
+                            color: AppTheme.mutedForegroundColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch.adaptive(
+                    value: _perfilPublico,
+                    activeColor: AppTheme.primaryColor,
+                    onChanged: (value) async {
+                      final confirmado = await _confirmarCambioPrivacidad(
+                        value,
+                      );
+                      if (!confirmado) return;
+                      setState(() => _perfilPublico = value);
+                    },
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32),

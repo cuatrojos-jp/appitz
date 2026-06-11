@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
 import '../services/temporada_service.dart';
 import '../models/temporadas_model.dart';
 import 'agregar_temporada_screen.dart';
@@ -22,10 +23,14 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
   static const String _estadoSuspendidoId =
       '90f514a4-b43c-4fb1-b327-366b708dd9c2';
 
+  static const String _adminRoleId = 'a0d38955-fa67-4751-a36b-777fcf4d8ed9';
+
   final TemporadaService _temporadaService = TemporadaService();
+  final AuthService _authService = AuthService();
   List<TemporadaModel> _temporadas = [];
   bool _isLoading = true;
   bool _existeTemporadaActivaProgramada = false;
+  bool _isAdmin = false;
   String? _errorMessage;
   final String _filtroEstado =
       'todos'; // 'todos', 'activo', 'programado', 'finalizado'
@@ -33,8 +38,22 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
   @override
   void initState() {
     super.initState();
+    _verificarPermisos();
     _cargarTemporadas();
     _verificarExistenciaTemporada();
+  }
+
+  Future<void> _verificarPermisos() async {
+    final userId = _authService.getCurrentUserId();
+    if (userId == null) {
+      if (mounted) setState(() => _isAdmin = false);
+      return;
+    }
+
+    final rolId = await _authService.getRolId(userId);
+    if (mounted) {
+      setState(() => _isAdmin = rolId == _adminRoleId);
+    }
   }
 
   Future<void> _verificarExistenciaTemporada() async {
@@ -354,52 +373,52 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
             ),
           ],
         ),
-        // Botón Nueva Temporada
-        GestureDetector(
-          onTap: _existeTemporadaActivaProgramada
-              ? () {
-                  showSnackBar(
-                    context,
-                    'No puedes crear una nueva temporada mientras exista una activa o programada.',
-                    color: Colors.orange,
-                  );
-                }
-              : () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AgregarTemporadaScreen(),
-                    ),
-                  );
-                  if (result == true) {
-                    _cargarTemporadas();
+        if (_isAdmin)
+          GestureDetector(
+            onTap: _existeTemporadaActivaProgramada
+                ? () {
+                    showSnackBar(
+                      context,
+                      'No puedes crear una nueva temporada mientras exista una activa o programada.',
+                      color: Colors.orange,
+                    );
                   }
-                },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: _existeTemporadaActivaProgramada
-                  ? Colors.blueGrey
-                  : Colors.greenAccent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add, color: Color(0xFF0F0F11), size: 18),
-                SizedBox(width: 8),
-                Text(
-                  'Nueva',
-                  style: TextStyle(
-                    color: Color(0xFF0F0F11),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                : () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AgregarTemporadaScreen(),
+                      ),
+                    );
+                    if (result == true) {
+                      _cargarTemporadas();
+                    }
+                  },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: _existeTemporadaActivaProgramada
+                    ? Colors.blueGrey
+                    : Colors.greenAccent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add, color: Color(0xFF0F0F11), size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Nueva',
+                    style: TextStyle(
+                      color: Color(0xFF0F0F11),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -739,41 +758,42 @@ class _TemporadaScreenState extends State<TemporadaScreen> {
               ),
 
               // Botones de acción - Wrap para que se envuelvan automáticamente
-              Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.end,
-                  children: [
-                    _buildActionButton(
-                      icon: Icons.edit_outlined,
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                AgregarTemporadaScreen(temporada: temporada),
-                          ),
-                        );
-                        if (result == true) {
-                          _cargarTemporadas();
-                        }
-                      },
-                    ),
-                    _buildActionButton(
-                      icon: Icons.delete_outline,
-                      iconColor: const Color(0xFFEF4444),
-                      onTap: () => _confirmarEliminacion(temporada),
-                    ),
-                    _buildActionButton(
-                      icon: Icons.swap_horiz,
-                      iconColor: Colors.orange,
-                      onTap: () => _mostrarMenuEstados(temporada),
-                    ),
-                  ],
+              if (_isAdmin)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      _buildActionButton(
+                        icon: Icons.edit_outlined,
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  AgregarTemporadaScreen(temporada: temporada),
+                            ),
+                          );
+                          if (result == true) {
+                            _cargarTemporadas();
+                          }
+                        },
+                      ),
+                      _buildActionButton(
+                        icon: Icons.delete_outline,
+                        iconColor: const Color(0xFFEF4444),
+                        onTap: () => _confirmarEliminacion(temporada),
+                      ),
+                      _buildActionButton(
+                        icon: Icons.swap_horiz,
+                        iconColor: Colors.orange,
+                        onTap: () => _mostrarMenuEstados(temporada),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
 

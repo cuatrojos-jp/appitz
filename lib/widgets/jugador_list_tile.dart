@@ -5,12 +5,14 @@ import '../theme/app_theme.dart';
 class JugadorListTile extends StatelessWidget {
   final JugadorModel jugador;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   const JugadorListTile({
     super.key,
     required this.jugador,
     required this.onTap,
+    this.onEdit,
     this.onDelete,
   });
 
@@ -59,12 +61,22 @@ class JugadorListTile extends StatelessWidget {
                 : Colors.grey,
               size: 18,
             ),
+            if (onEdit != null) ...[
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryColor),
+                onPressed: onEdit,
+                iconSize: 20,
+                tooltip: 'Editar jugador',
+              ),
+            ],
             if (onDelete != null) ...[
               const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 onPressed: () => _confirmarEliminacion(context),
                 iconSize: 20,
+                tooltip: 'Eliminar jugador',
               ),
             ],
             const Icon(Icons.chevron_right, color: Colors.grey),
