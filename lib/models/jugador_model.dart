@@ -67,8 +67,8 @@ class JugadorModel {
     return JugadorModel(
       id: id ?? this.id,
       nombreCompleto: nombreCompleto ?? this.nombreCompleto,
-      emailContacto: emailContacto ?? emailContacto,
-      fechaNacimiento: fechaNacimiento ?? fechaNacimiento,
+      emailContacto: emailContacto ?? this.emailContacto,
+      fechaNacimiento: fechaNacimiento ?? this.fechaNacimiento,
       fotoUrl: fotoUrl ?? this.fotoUrl,
       activo: activo ?? this.activo,
       estadisticasPublicas: estadisticasPublicas ?? this.estadisticasPublicas,

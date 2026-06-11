@@ -1,6 +1,7 @@
 // lib/screens/equipo_list_screen.dart
 import 'package:flutter/material.dart';
 import '../models/equipos_model.dart';
+import '../services/auth_service.dart';
 import '../services/equipo_service.dart';
 import 'nuevo_equipo_screen.dart';
 import '../widgets/confirmacion_dialog.dart';
@@ -14,13 +15,17 @@ class EquipoListScreen extends StatefulWidget {
 
 class _EquipoListScreenState extends State<EquipoListScreen>
     with AutomaticKeepAliveClientMixin {
+  static const String _adminRoleId = 'a0d38955-fa67-4751-a36b-777fcf4d8ed9';
+
   final EquipoService _service = EquipoService();
+  final AuthService _authService = AuthService();
   late Future<List<EquipoModel>> _equiposFuture;
 
   // 🔍 PARA EL BUSCADOR
   List<EquipoModel> _todosLosEquipos = [];
   List<EquipoModel> _equiposFiltrados = [];
   bool _isSearching = false;
+  bool _isAdmin = false;
   final TextEditingController _searchController = TextEditingController();
 
   // 🎨 COLORES
@@ -36,7 +41,21 @@ class _EquipoListScreenState extends State<EquipoListScreen>
   @override
   void initState() {
     super.initState();
+    _verificarPermisos();
     _cargarEquipos();
+  }
+
+  Future<void> _verificarPermisos() async {
+    final userId = _authService.getCurrentUserId();
+    if (userId == null) {
+      if (mounted) setState(() => _isAdmin = false);
+      return;
+    }
+
+    final rolId = await _authService.getRolId(userId);
+    if (mounted) {
+      setState(() => _isAdmin = rolId == _adminRoleId);
+    }
   }
 
   @override
@@ -218,17 +237,19 @@ class _EquipoListScreenState extends State<EquipoListScreen>
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: neon,
-        child: const Icon(Icons.add, color: Colors.black),
-        onPressed: () async {
-          final resultado = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const NuevoEquipoScreen()),
-          );
-          if (resultado == true && mounted) _recargar();
-        },
-      ),
+      floatingActionButton: _isAdmin
+          ? FloatingActionButton(
+              backgroundColor: neon,
+              child: const Icon(Icons.add, color: Colors.black),
+              onPressed: () async {
+                final resultado = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NuevoEquipoScreen()),
+                );
+                if (resultado == true && mounted) _recargar();
+              },
+            )
+          : null,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -345,14 +366,16 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                                       fontSize: 16,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Toca el + para agregar tu primer equipo',
-                                    style: TextStyle(
-                                      color: Colors.white30,
-                                      fontSize: 12,
+                                  if (_isAdmin) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Toca el + para agregar tu primer equipo',
+                                      style: TextStyle(
+                                        color: Colors.white30,
+                                        fontSize: 12,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             );
@@ -505,15 +528,15 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                   'Modalidad: ${equipo.cantidad}',
                   style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
-                if (estaDeshabilitado && equipo.habilitadoDescripcion != null)
+                if (estaDeshabilitado && equipo.habilitadoDescripcion != null && _isAdmin)
                   Container(
                     padding: const EdgeInsets.all(8),
                     margin: const EdgeInsets.only(top: 4),
                     decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.1),
+                      color: Colors.redAccent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Colors.redAccent.withOpacity(0.3),
+                        color: Colors.redAccent.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -538,77 +561,78 @@ class _EquipoListScreenState extends State<EquipoListScreen>
                     ),
                   ),
                 const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: estaDeshabilitado
-                              ? enabledBadgeColor
-                              : disabledBadgeColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                if (_isAdmin)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: estaDeshabilitado
+                                ? enabledBadgeColor
+                                : disabledBadgeColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                        ),
-                        icon: Icon(
-                          estaDeshabilitado ? Icons.play_arrow : Icons.block,
-                          size: 16,
-                        ),
-                        label: Text(
-                          estaDeshabilitado ? 'Habilitar' : 'Deshabilitar',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () {
-                          if (estaDeshabilitado) {
-                            _habilitarEquipo(equipo);
-                          } else {
-                            _deshabilitarEquipo(equipo);
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2A6F5C),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                          icon: Icon(
+                            estaDeshabilitado ? Icons.play_arrow : Icons.block,
+                            size: 16,
                           ),
-                        ),
-                        icon: const Icon(Icons.edit, size: 16),
-                        label: const Text(
-                          'Editar',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () => _editarEquipo(equipo),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6F2A2A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                          label: Text(
+                            estaDeshabilitado ? 'Habilitar' : 'Deshabilitar',
+                            style: const TextStyle(fontSize: 12),
                           ),
+                          onPressed: () {
+                            if (estaDeshabilitado) {
+                              _habilitarEquipo(equipo);
+                            } else {
+                              _deshabilitarEquipo(equipo);
+                            }
+                          },
                         ),
-                        icon: const Icon(Icons.delete, size: 16),
-                        label: const Text(
-                          'Eliminar',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () => _eliminarEquipo(equipo),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2A6F5C),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.edit, size: 16),
+                          label: const Text(
+                            'Editar',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          onPressed: () => _editarEquipo(equipo),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6F2A2A),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.delete, size: 16),
+                          label: const Text(
+                            'Eliminar',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          onPressed: () => _eliminarEquipo(equipo),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

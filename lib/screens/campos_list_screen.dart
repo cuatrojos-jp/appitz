@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/campos_model.dart';
+import '../services/auth_service.dart';
 import '../services/campo_service.dart';
 import 'nuevo_campo_screen.dart';
 import 'editar_campo_screen.dart';
@@ -12,13 +13,17 @@ class CamposListScreen extends StatefulWidget {
 }
 
 class _CamposListScreenState extends State<CamposListScreen> {
+  static const String _adminRoleId = 'a0d38955-fa67-4751-a36b-777fcf4d8ed9';
+
   final CampoService _service = CampoService();
+  final AuthService _authService = AuthService();
   late Future<List<CampoFutbolModel>> _camposFuture;
   
   // 🔍 PARA EL BUSCADOR
   List<CampoFutbolModel> _todosLosCampos = [];
   List<CampoFutbolModel> _camposFiltrados = [];
   bool _isSearching = false;
+  bool _isAdmin = false;
   final TextEditingController _searchController = TextEditingController();
 
   static const Color backgroundColor = Color(0xFF1a1a1a);
@@ -28,7 +33,21 @@ class _CamposListScreenState extends State<CamposListScreen> {
   @override
   void initState() {
     super.initState();
+    _verificarPermisos();
     _cargarCampos();
+  }
+
+  Future<void> _verificarPermisos() async {
+    final userId = _authService.getCurrentUserId();
+    if (userId == null) {
+      if (mounted) setState(() => _isAdmin = false);
+      return;
+    }
+
+    final rolId = await _authService.getRolId(userId);
+    if (mounted) {
+      setState(() => _isAdmin = rolId == _adminRoleId);
+    }
   }
 
   @override
@@ -146,17 +165,19 @@ class _CamposListScreenState extends State<CamposListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: neon,
-        child: const Icon(Icons.add, color: Colors.black),
-        onPressed: () async {
-          final r = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const NuevoCampoScreen()),
-          );
-          if (r == true) _recargar();
-        },
-      ),
+      floatingActionButton: _isAdmin
+          ? FloatingActionButton(
+              backgroundColor: neon,
+              child: const Icon(Icons.add, color: Colors.black),
+              onPressed: () async {
+                final r = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NuevoCampoScreen()),
+                );
+                if (r == true) _recargar();
+              },
+            )
+          : null,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -321,68 +342,68 @@ class _CamposListScreenState extends State<CamposListScreen> {
                       : _placeholder(),
                 ),
               ),
-              // Botón EDITAR
-              Positioned(
-                top: 8,
-                left: 8,
-                child: GestureDetector(
-                  onTap: () async {
-                    final resultado = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditarCampoScreen(campo: campo),
+              if (_isAdmin)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: GestureDetector(
+                    onTap: () async {
+                      final resultado = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditarCampoScreen(campo: campo),
+                        ),
+                      );
+                      if (resultado == true) _recargar();
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: neon.withOpacity(0.85),
+                        shape: BoxShape.circle,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black54,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    );
-                    if (resultado == true) _recargar();
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: neon.withOpacity(0.85),
-                      shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black54,
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: const Icon(
-                      Icons.edit,
-                      color: Color(0xFF0a0a0a),
-                      size: 20,
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.edit,
+                        color: Color(0xFF0a0a0a),
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // Botón ELIMINAR
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () => _mostrarConfirmacionEliminar(campo),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.85),
-                      shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black54,
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: const Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                      size: 20,
+              if (_isAdmin)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () => _mostrarConfirmacionEliminar(campo),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.85),
+                        shape: BoxShape.circle,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black54,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
           Padding(
@@ -411,11 +432,18 @@ class _CamposListScreenState extends State<CamposListScreen> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Switch(
-                      value: campo.disponible,
-                      onChanged: (v) => _toggleDisponible(campo, v),
-                      activeColor: neon,
-                    ),
+                    if (_isAdmin)
+                      Switch(
+                        value: campo.disponible,
+                        onChanged: (v) => _toggleDisponible(campo, v),
+                        activeColor: neon,
+                      )
+                    else
+                      Icon(
+                        campo.disponible ? Icons.check_circle : Icons.block,
+                        color: campo.disponible ? neon : Colors.white38,
+                        size: 18,
+                      ),
                     const SizedBox(width: 6),
                     Text(
                       'Disponible',

@@ -9,7 +9,9 @@ import '../models/temporadas_model.dart';
 import '../theme/app_theme.dart';
 
 class EstadisticasHistoricasJugadorScreen extends StatefulWidget {
-  const EstadisticasHistoricasJugadorScreen({super.key});
+  final String? jugadorId;
+
+  const EstadisticasHistoricasJugadorScreen({super.key, this.jugadorId});
 
   @override
   State<EstadisticasHistoricasJugadorScreen> createState() =>
@@ -37,7 +39,9 @@ class _EstadisticasHistoricasJugadorScreenState
       // Corremos ambas consultas en paralelo
       final results = await Future.wait([
         _temporadaService.listarTemporadas(),
-        _statsService.getHistoricoPropio(limite: 5),
+        widget.jugadorId != null
+            ? _statsService.getHistoricoPorJugador(widget.jugadorId!, limite: 5)
+            : _statsService.getHistoricoPropio(limite: 5),
       ]);
 
       final todasTemporadas = results[0] as List<TemporadaModel>;
